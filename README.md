@@ -40,7 +40,7 @@
 | 国内模型 | 国外模型   |
 | -------- | ---------- |
 | Deepseek | Grok       |
-| 豆包     | Claude     |
+| 豆包     | Claude 4.5    |
 | Kimi     | Gemini 2.5    |
 | 通义千问 | ChatGPT-o3  |
 | 文心一言 | ChatGPT-5.2* |

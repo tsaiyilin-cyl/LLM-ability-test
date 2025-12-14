@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>图片分类 - 最小前端</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 24px; max-width: 980px; }
+    textarea { width: 100%; min-height: 120px; resize: vertical; }
+    input[type="text"], select { width: 100%; padding: 8px 10px; box-sizing: border-box; }
+    input[type="file"] { width: 100%; }
+    .row { margin: 12px 0; }
+    .btn { padding: 10px 14px; cursor: pointer; border: 1px solid #111; background: #111; color: #fff; border-radius: 10px; }
+    .btn:active { transform: translateY(1px); }
+    pre { background: #0b1020; color: #e6e6e6; padding: 12px; overflow: auto; border-radius: 10px; }
+    label { font-weight: 600; display: block; margin-bottom: 6px; }
+    .hint { color: #666; font-size: 12px; margin-top: 6px; }
+    .card { border: 1px solid #e6e6e6; border-radius: 14px; padding: 14px; background: #fff; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+    @media (max-width: 760px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+    .kv { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: start; }
+    .kv label { margin: 0; }
+    .img-preview { width: 96px; height: 96px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #fafafa; display: flex; align-items: center; justify-content: center; }
+    .img-preview img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .img-preview .placeholder { color: #888; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h2>图片分类（最基础示例）</h2>
+
+  <div class="row card">
+    <div class="grid-2">
+      <div>
+        <label for="baseApi">BaseAPI</label>
+        <select id="baseApi">
+          <option value="https://api.hunyuan.cloud.tencent.com/v1">https://api.hunyuan.cloud.tencent.com/v1</option>
+          <option value="https://api.whatai.cc" selected>https://api.whatai.cc</option>
+        </select>
+        <div class="hint">如需自定义，可在右侧输入框覆盖</div>
+      </div>
+      <div>
+        <label for="baseApiCustom">自定义 BaseAPI（可选）</label>
+        <input id="baseApiCustom" type="text" placeholder="留空则使用左侧下拉选项" />
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top: 12px;">
+      <div>
+        <label for="model">模型</label>
+        <select id="model">
+          <option value="hunyuan-vision" selected>hunyuan-vision</option>
+          <option value="grok-4">grok-4</option>
+          <option value="claude-opus-4-5-20251101">claude-opus-4-5-20251101</option>
+          <option value="gemini-2.5-pro-thinking-*">gemini-2.5-pro-thinking-*</option>
+        </select>
+        <div class="hint">可在右侧填自定义模型名覆盖</div>
+      </div>
+      <div>
+        <label for="modelCustom">自定义模型名（可选）</label>
+        <input id="modelCustom" type="text" placeholder="留空则使用左侧下拉选项" />
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top: 12px;">
+      <div>
+        <label for="sys">系统提示词（system prompt）</label>
+        <textarea id="sys" placeholder="输入系统提示词"></textarea>
+      </div>
+      <div>
+        <label for="user">用户提示词（user prompt）</label>
+        <textarea id="user" placeholder="输入用户提示词"></textarea>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top: 12px; align-items: start;">
+      <div>
+        <label for="image">图片（可选）</label>
+        <input id="image" type="file" accept="image/*" />
+      </div>
+      <div>
+        <label>预览</label>
+        <div class="img-preview" id="imgPreviewBox">
+          <span class="placeholder" id="imgPlaceholder">未选择图片</span>
+          <img id="imgPreview" alt="preview" />
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top: 14px;">
+      <button class="btn" id="sendBtn">发送</button>
+    </div>
+  </div>
+
+  <h3>返回</h3>
+  <div class="row card">
+    <div class="grid-2">
+      <div>
+        <label>content</label>
+        <pre id="contentOut">(empty)</pre>
+      </div>
+      <div>
+        <label>tokens</label>
+        <pre id="tokensOut">(empty)</pre>
+      </div>
+    </div>
+    <div style="margin-top: 12px;">
+      <label>raw</label>
+      <pre id="out">(empty)</pre>
+    </div>
+  </div>
+
+<script>
+  const out = document.getElementById('out');
+  const contentOut = document.getElementById('contentOut');
+  const tokensOut = document.getElementById('tokensOut');
+  const sendBtn = document.getElementById('sendBtn');
+  const imageInput = document.getElementById('image');
+  const imgPreview = document.getElementById('imgPreview');
+  const imgPlaceholder = document.getElementById('imgPlaceholder');
+
+  let previewUrl = null;
+
+  function setPreview(file) {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+    }
+    if (!file) {
+      imgPreview.style.display = 'none';
+      imgPreview.removeAttribute('src');
+      imgPlaceholder.style.display = 'inline';
+      return;
+    }
+    previewUrl = URL.createObjectURL(file);
+    imgPreview.src = previewUrl;
+    imgPreview.style.display = 'block';
+    imgPlaceholder.style.display = 'none';
+  }
+
+  imageInput.addEventListener('change', () => {
+    const file = imageInput.files && imageInput.files[0] ? imageInput.files[0] : null;
+    setPreview(file);
+  });
+
+  function show(obj) {
+    out.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
+  }
+
+  function showResult(data) {
+    if (!data || typeof data !== 'object') {
+      contentOut.textContent = '';
+      tokensOut.textContent = '';
+      show(data);
+      return;
+    }
+
+    contentOut.textContent = data.content ?? '';
+    tokensOut.textContent = JSON.stringify(
+      {
+        completion_tokens: data.completion_tokens ?? null,
+        prompt_tokens: data.prompt_tokens ?? null,
+        total_tokens: data.total_tokens ?? null,
+      },
+      null,
+      2
+    );
+    show(data.raw ?? data);
+  }
+
+  sendBtn.addEventListener('click', async () => {
+    const baseApi = document.getElementById('baseApi').value.trim();
+    const baseApiCustom = document.getElementById('baseApiCustom').value.trim();
+    const baseUrl = (baseApiCustom || baseApi).trim();
+
+    const modelSel = document.getElementById('model').value.trim();
+    const modelCustom = document.getElementById('modelCustom').value.trim();
+    const model = (modelCustom || modelSel).trim();
+
+    const sys = document.getElementById('sys').value;
+    const user = document.getElementById('user').value;
+    const imageFile = document.getElementById('image').files[0];
+
+    const form = new FormData();
+    form.append('base_url', baseUrl);
+    form.append('model', model);
+    form.append('system_prompt', sys);
+    form.append('user_prompt', user);
+    if (imageFile) form.append('image', imageFile);
+
+    contentOut.textContent = 'Loading...';
+    tokensOut.textContent = '';
+    show('Loading...');
+    try {
+      const resp = await fetch(`/api/chat`, { method: 'POST', body: form });
+      const text = await resp.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = text; }
+      if (!resp.ok) {
+        showResult({ content: '', completion_tokens: null, prompt_tokens: null, total_tokens: null, raw: { error: 'Request failed', status: resp.status, data } });
+        return;
+      }
+      showResult(data);
+    } catch (e) {
+      showResult({ content: '', completion_tokens: null, prompt_tokens: null, total_tokens: null, raw: { error: String(e) } });
+    }
+  });
+</script>
+</body>
+</html>
