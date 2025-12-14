@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安全攻击测试 - LLM 能力测试平台</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🛡️ 安全攻击测试</h1>
+            <p>测试模型对危险请求的防护能力</p>
+            <a href="/static/index.html" class="back-link">← 返回首页</a>
+        </header>
+
+        <!-- API 配置 -->
+        <section class="card">
+            <div class="collapsible-header" onclick="toggleSection('configBody')">
+                <h3>⚙️ API 配置</h3>
+                <span class="toggle-icon" id="configIcon">▼</span>
+            </div>
+            <div class="collapsible-body" id="configBody">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label>API Base URL</label>
+                        <input type="text" id="apiBaseUrl" placeholder="https://api.openai.com">
+                    </div>
+                    <div class="form-field">
+                        <label>API Key</label>
+                        <div class="input-with-toggle">
+                            <input type="password" id="apiKey" placeholder="sk-xxxxxxxx">
+                            <button class="toggle-visibility" onclick="toggleKeyVisibility()">👁️</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="btn-group mt-2">
+                    <button class="btn btn-primary btn-sm" onclick="App.saveApiConfig()">💾 保存</button>
+                    <button class="btn btn-secondary btn-sm" onclick="App.testConnection()">🔗 测试连接</button>
+                </div>
+                <div class="status info mt-1" id="apiStatus">⚪ 点击测试连接</div>
+            </div>
+        </section>
+
+        <!-- 控制面板 -->
+        <div class="form-grid">
+            <div class="card">
+                <h3 class="mb-1">选择模型</h3>
+                <select id="modelSelect">
+                    <optgroup label="国内模型">
+                        <option value="ernie-5.0-thinking-preview">文心 5.0</option>
+                        <option value="doubao-pro-32k">豆包</option>
+                        <option value="moonshot-v1-8k">Kimi</option>
+                        <option value="qwen-turbo">通义千问</option>
+                    </optgroup>
+                    <optgroup label="国外模型">
+                        <option value="o3" selected>OpenAI o3</option>
+                        <option value="gpt-5.2-thinking">GPT-5.2 Thinking</option>
+                        <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
+                        <option value="gemini-3-pro-preview-thinking-*">Gemini 3 Pro Thinking</option>
+                        <option value="gemini-2.5-pro-preview-thinking">Gemini 2.5 Pro Thinking</option>
+                        <option value="grok-beta">Grok</option>
+                        <option value="llama-3.1-70b-instruct">Llama 3.1</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="card">
+                <h3 class="mb-1">测试语言</h3>
+                <select id="langSelect">
+                    <option value="zh">中文</option>
+                    <option value="en">English</option>
+                    <option value="all">🌐 中英全选</option>
+                </select>
+            </div>
+
+            <div class="card">
+                <h3 class="mb-1">执行测试</h3>
+                <button class="btn btn-primary btn-block" id="runTestBtn" onclick="App.runTests()">
+                    🚀 运行选中测试
+                </button>
+                <div class="checkbox-wrapper mt-1">
+                    <input type="checkbox" id="selectAll" onchange="App.toggleSelectAll()">
+                    <label for="selectAll" style="color: var(--text-secondary); font-size: 0.875rem;">全选所有用例</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 提示词配置 -->
+        <section class="card">
+            <div class="collapsible-header" onclick="toggleSection('promptBody')">
+                <h3>📝 提示词配置</h3>
+                <span class="toggle-icon" id="promptIcon">▼</span>
+            </div>
+            <div class="collapsible-body open" id="promptBody">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label>System Prompt <span style="font-size: 0.7rem; color: var(--accent-primary);">(系统提示词)</span></label>
+                        <textarea id="sysPrompt" placeholder="输入系统提示词..."></textarea>
+                        <span class="hint">定义 AI 助手的角色和行为</span>
+                    </div>
+                    <div class="form-field">
+                        <label>User Prompt <span style="font-size: 0.7rem; color: var(--accent-primary);">(用户提示词模板)</span></label>
+                        <textarea id="userPrompt" placeholder="输入用户提示词模板..."></textarea>
+                        <span class="hint">使用 <code>{question}</code> 作为问题占位符</span>
+                    </div>
+                </div>
+                <div class="btn-group mt-2">
+                    <button class="btn btn-secondary btn-sm" onclick="App.resetPrompts()">🔄 重置为默认</button>
+                    <button class="btn btn-secondary btn-sm" onclick="App.savePrompts()">💾 保存提示词</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 测试用例 -->
+        <section class="card">
+            <h3 class="mb-1">📋 安全测试用例</h3>
+            <div class="test-grid" id="testCasesGrid">
+                <!-- 测试用例将在这里加载 -->
+            </div>
+        </section>
+
+        <!-- 测试结果 -->
+        <section class="card hidden" id="resultsSection">
+            <div class="card-header">
+                <h3>📊 测试结果</h3>
+                <div class="btn-group">
+                    <button class="btn btn-primary btn-sm" onclick="Components.generateEvaluationReport()">📋 生成评估报告</button>
+                    <button class="btn btn-secondary btn-sm" onclick="App.clearResults()">清空结果</button>
+                </div>
+            </div>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalTests">0</div>
+                    <div class="stat-label">总测试数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="passedCount">0</div>
+                    <div class="stat-label">拒绝回答</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="avgTime">0s</div>
+                    <div class="stat-label">平均响应</div>
+                </div>
+            </div>
+            <div id="resultsContainer"></div>
+        </section>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/components.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script>
+        // 折叠面板
+        function toggleSection(id) {
+            const body = document.getElementById(id);
+            const iconId = id.replace('Body', 'Icon');
+            const icon = document.getElementById(iconId);
+            body.classList.toggle('open');
+            if (icon) icon.classList.toggle('open');
+        }
+
+        // 密码可见性
+        function toggleKeyVisibility() {
+            const input = document.getElementById('apiKey');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        // 初始化
+        App.init('security');
+    </script>
+</body>
+</html>
+

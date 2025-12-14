@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM 能力测试平台 | AI Benchmark</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* 首页特殊效果 */
+        .hero-section {
+            text-align: center;
+            padding: 4rem 2rem;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.5), rgba(236, 72, 153, 0.5), rgba(6, 182, 212, 0.5), transparent);
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(167, 139, 250, 0.1);
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            border-radius: 30px;
+            font-size: 0.8rem;
+            color: var(--text-accent);
+            margin-bottom: 1.5rem;
+            animation: fadeInDown 0.6s ease;
+        }
+        
+        .hero-badge .pulse {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            50% { opacity: 0.8; box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+        }
+        
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .hero-title {
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #fff 0%, #a78bfa 50%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            animation: fadeInDown 0.6s ease 0.1s backwards;
+            line-height: 1.1;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            animation: fadeInDown 0.6s ease 0.2s backwards;
+        }
+        
+        .hero-stats {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            animation: fadeInDown 0.6s ease 0.3s backwards;
+        }
+        
+        .hero-stat {
+            text-align: center;
+        }
+        
+        .hero-stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero-stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        /* 配置区样式优化 */
+        .config-card {
+            background: linear-gradient(135deg, rgba(30, 30, 50, 0.8) 0%, rgba(20, 20, 40, 0.8) 100%);
+        }
+        
+        /* Section标题优化 */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .section-header h2 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .section-header .line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(167, 139, 250, 0.3), transparent);
+        }
+        
+        /* 模型列表卡片 */
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .model-category {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+        
+        .model-category h4 {
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .model-category h4::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .model-category.domestic h4::before {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+        }
+        
+        .model-category.international h4::before {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        
+        .model-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .model-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            transition: var(--transition-fast);
+        }
+        
+        .model-item:hover {
+            color: var(--text-primary);
+        }
+        
+        .model-item .dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--text-accent);
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 3rem 0 2rem;
+            margin-top: 3rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        
+        .footer a {
+            color: var(--text-accent);
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-badge">
+                <span class="pulse"></span>
+                <span>多维度 AI 能力评估系统</span>
+            </div>
+            <h1 class="hero-title">🔬 LLM 能力测试平台</h1>
+            <p class="hero-subtitle">
+                全方位评估大语言模型的安全性、准确性与智能水平，助力 AI 研究与应用
+            </p>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-value">6</div>
+                    <div class="hero-stat-label">测试维度</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">67</div>
+                    <div class="hero-stat-label">测试用例</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="hero-stat-value">10+</div>
+                    <div class="hero-stat-label">支持模型</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- API 配置区域 -->
+        <section class="card config-card">
+            <div class="collapsible-header" onclick="toggleConfig()">
+                <h3>⚙️ API 配置</h3>
+                <span class="toggle-icon" id="toggleIcon">▼</span>
+            </div>
+            <div class="collapsible-body" id="configBody">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label>API Base URL</label>
+                        <input type="text" id="apiBaseUrl" 
+                               value="https://api.whatai.cc" 
+                               placeholder="https://api.openai.com">
+                        <span class="hint">支持 OpenAI 兼容的 API 接口</span>
+                    </div>
+                    <div class="form-field">
+                        <label>API Key</label>
+                        <div class="input-with-toggle">
+                            <input type="password" id="apiKey" 
+                                   value="sk-LxHyQAmGfoMXPLS2qxQs9lUWTjlkYJU48IHnFCk3VFtZ442I" 
+                                   placeholder="sk-xxxxxxxx">
+                            <button class="toggle-visibility" onclick="toggleKeyVisibility()">👁️</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="btn-group mt-2">
+                    <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 保存配置</button>
+                    <button class="btn btn-secondary btn-sm" onclick="testConnection()">🔗 测试连接</button>
+                </div>
+                <div class="status info mt-1" id="apiStatus">⚪ 点击测试连接验证配置</div>
+            </div>
+        </section>
+
+        <!-- 测试维度选择 -->
+        <section>
+            <div class="section-header">
+                <h2>📊 选择测试维度</h2>
+                <div class="line"></div>
+            </div>
+            <div class="dimension-grid" id="dimensionGrid">
+                <!-- 安全攻击测试 -->
+                <div class="dimension-card security" onclick="location.href='/static/pages/security.html'">
+                    <div class="dimension-icon">🛡️</div>
+                    <div class="dimension-title">安全攻击测试</div>
+                    <div class="dimension-desc">测试模型对危险请求的防护能力，包括暴力犯罪、自杀倾向、恐怖主义等场景</div>
+                    <div class="dimension-stats">
+                        <span class="dimension-stat">测试用例: <strong>10</strong></span>
+                        <span class="dimension-stat">状态: <strong>可用</strong></span>
+                    </div>
+                </div>
+
+                <!-- 图片分类 -->
+                <div class="dimension-card image" onclick="location.href='/static/pages/image.html'">
+                    <div class="dimension-icon">🖼️</div>
+                    <div class="dimension-title">图片分类问题</div>
+                    <div class="dimension-desc">测试模型的视觉理解与分类能力，识别动物、颜色、情绪等多种内容</div>
+                    <div class="dimension-stats">
+                        <span class="dimension-stat">测试用例: <strong>22</strong></span>
+                        <span class="dimension-stat">状态: <strong>可用</strong></span>
+                    </div>
+                </div>
+
+                <!-- 文本分类 -->
+                <div class="dimension-card text" onclick="location.href='/static/pages/text.html'">
+                    <div class="dimension-icon">📝</div>
+                    <div class="dimension-title">文本分类问题</div>
+                    <div class="dimension-desc">测试模型对商品、新闻、科目等内容的分类能力与推理准确性</div>
+                    <div class="dimension-stats">
+                        <span class="dimension-stat">测试用例: <strong>7</strong></span>
+                        <span class="dimension-stat">状态: <strong>可用</strong></span>
+                    </div>
+                </div>
+
+                <!-- 时政类问题 -->
+                <div class="dimension-card politics" onclick="location.href='/static/pages/politics.html'">
+                    <div class="dimension-icon">🏛️</div>
+                    <div class="dimension-title">时政类问题</div>
+                    <div class="dimension-desc">测试模型对时事政治的理解、立场中立性和事实准确性评估</div>
+                    <div class="dimension-stats">
+                        <span class="dimension-stat">测试用例: <strong>8</strong></span>
+                        <span class="dimension-stat">状态: <strong>可用</strong></span>
+                    </div>
+                </div>
+
+                <!-- 谐音梗解释 -->
+                <div class="dimension-card pun" onclick="location.href='/static/pages/pun.html'">
+                    <div class="dimension-icon">😂</div>
+                    <div class="dimension-title">谐音梗解释</div>
+                    <div class="dimension-desc">测试模型对中英文谐音梗、双关语的识别和解释能力</div>
+                    <div class="dimension-stats">
+                        <span class="dimension-stat">测试用例: <strong>10</strong></span>
+                        <span class="dimension-stat">状态: <strong>可用</strong></span>
+                    </div>
+                </div>
+
+                <!-- 大模型幻觉 -->
+                <div class="dimension-card hallucination" onclick="location.href='/static/pages/hallucination.html'">
+                    <div class="dimension-icon">💭</div>
+                    <div class="dimension-title">大模型幻觉问题</div>
+                    <div class="dimension-desc">测试模型的幻觉发生率和事实核查能力，评估知识准确性</div>
+                    <div class="dimension-stats">
+                        <span class="dimension-stat">测试用例: <strong>10</strong></span>
+                        <span class="dimension-stat">状态: <strong>可用</strong></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 支持的模型 -->
+        <section class="card mt-2">
+            <div class="section-header" style="margin-bottom: 1.5rem;">
+                <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">🤖 支持的模型</h3>
+            </div>
+            <div class="model-grid">
+                <div class="model-category domestic">
+                    <h4>国内模型</h4>
+                    <div class="model-list">
+                        <div class="model-item"><span class="dot"></span>文心 5.0 (ERNIE)</div>
+                        <div class="model-item"><span class="dot"></span>豆包 (Doubao)</div>
+                        <div class="model-item"><span class="dot"></span>Kimi (Moonshot)</div>
+                        <div class="model-item"><span class="dot"></span>通义千问 (Qwen)</div>
+                    </div>
+                </div>
+                <div class="model-category international">
+                    <h4>国际模型</h4>
+                    <div class="model-list">
+                        <div class="model-item"><span class="dot"></span>OpenAI o3 / GPT-5.2</div>
+                        <div class="model-item"><span class="dot"></span>Claude 3.5 Sonnet</div>
+                        <div class="model-item"><span class="dot"></span>Gemini 3 Pro / 2.5 Pro</div>
+                        <div class="model-item"><span class="dot"></span>Grok / Llama 3.1</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>LLM 能力测试平台 | 支持中英文双语测试</p>
+        </footer>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        // 配置面板折叠
+        function toggleConfig() {
+            const body = document.getElementById('configBody');
+            const icon = document.getElementById('toggleIcon');
+            body.classList.toggle('open');
+            icon.classList.toggle('open');
+        }
+
+        // 密码可见性切换
+        function toggleKeyVisibility() {
+            const input = document.getElementById('apiKey');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        // 保存配置
+        function saveConfig() {
+            const config = API.getConfig();
+            API.saveConfig(config);
+            updateStatus('success', '✅ 配置已保存');
+        }
+
+        // 测试连接
+        async function testConnection() {
+            updateStatus('info', '🔄 正在测试连接...');
+            try {
+                const result = await API.testConnection('gpt-3.5-turbo');
+                if (result.success) {
+                    updateStatus('success', '✅ 连接成功！API 可用');
+                } else {
+                    updateStatus('error', '❌ 连接失败: ' + result.error);
+                }
+            } catch (error) {
+                updateStatus('error', '❌ 连接错误: ' + error.message);
+            }
+        }
+
+        // 更新状态
+        function updateStatus(type, message) {
+            const el = document.getElementById('apiStatus');
+            el.className = 'status ' + type + ' mt-1';
+            el.textContent = message;
+        }
+
+        // 加载保存的配置
+        function loadConfig() {
+            const config = API.loadConfig();
+            if (config) {
+                document.getElementById('apiBaseUrl').value = config.base_url || '';
+                document.getElementById('apiKey').value = config.api_key || '';
+            }
+        }
+
+        // 初始化
+        loadConfig();
+        
+        // 添加卡片悬停动画延迟
+        document.querySelectorAll('.dimension-card').forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+        });
+    </script>
+</body>
+</html>
