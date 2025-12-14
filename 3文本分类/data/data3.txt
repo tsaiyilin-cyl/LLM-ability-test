@@ -1,0 +1,3 @@
+北京，西安，澳大利亚，墨西哥，法国，巴黎，伦敦，纽约
+En:
+Beijing, Xi'an, Australia, Mexico, France, Paris, London, New York

@@ -1,0 +1,3 @@
+语文，数学，英语，物理，化学，生物，政治，历史，地理，信息技术，体育，音乐，美术
+En:
+Chinese, Mathematics, English, Physics, Chemistry, Biology, Politics, History, Geography, Information Technology, Physical Education, Music, Fine Arts
