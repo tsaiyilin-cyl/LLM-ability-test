@@ -38,6 +38,7 @@
                 <div class="btn-group mt-2">
                     <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 保存</button>
                     <button class="btn btn-secondary btn-sm" onclick="testConnection()">🔗 测试连接</button>
+                    <button class="btn btn-secondary btn-sm" id="fetchModelsBtn" onclick="fetchModelsFromAPI()">🔄 获取模型列表</button>
                 </div>
                 <div class="status info mt-1" id="apiStatus">⚪ 点击测试连接</div>
             </div>
@@ -46,19 +47,24 @@
         <!-- 控制面板 -->
         <div class="form-grid">
             <div class="card">
-                <h3 class="mb-1">选择模型</h3>
-                <select id="modelSelect">
-                    <optgroup label="国内模型">
-                        <option value="ernie-5.0-thinking-preview">文心 5.0</option>
-                    </optgroup>
-                    <optgroup label="视觉模型">
-                        <option value="o3" selected>OpenAI o3</option>
-                        <option value="gpt-5.2-thinking">GPT-5.2 Thinking</option>
-                        <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                        <option value="gemini-3-pro-preview-thinking-*">Gemini 3 Pro Thinking</option>
-                        <option value="gemini-2.5-pro-preview-thinking">Gemini 2.5 Pro Thinking</option>
-                    </optgroup>
-                </select>
+                <div class="collapsible-header" onclick="toggleSection('modelBody')">
+                    <div>
+                        <h3>🤖 选择模型</h3>
+                        <span class="model-display" id="modelDisplay">未选择</span>
+                    </div>
+                    <span class="toggle-icon" id="modelIcon">▼</span>
+                </div>
+                <div class="collapsible-body open" id="modelBody">
+                    <div class="model-selector">
+                        <input type="text" id="modelSearchInput" class="model-search-input" placeholder="🔍 搜索模型...">
+                        <select id="modelSelect" size="8" class="model-select">
+                            <!-- 模型列表将通过 JavaScript 动态加载 -->
+                        </select>
+                        <span class="hint">
+                            请在 API 配置中点击"获取模型列表"按钮获取模型，然后在搜索框中输入关键词快速查找
+                        </span>
+                    </div>
+                </div>
             </div>
 
             <div class="card">
@@ -79,12 +85,12 @@
             <div class="collapsible-body open" id="promptBody">
                 <div class="form-grid">
                     <div class="form-field">
-                        <label>System Prompt <span style="font-size: 0.7rem; color: var(--accent-primary);">(系统提示词)</span></label>
+                        <label>System Prompt <span class="label-hint">(系统提示词)</span></label>
                         <textarea id="sysPrompt"></textarea>
                         <span class="hint">定义 AI 助手的角色和行为</span>
                     </div>
                     <div class="form-field">
-                        <label>User Prompt <span style="font-size: 0.7rem; color: var(--accent-primary);">(用户提示词模板)</span></label>
+                        <label>User Prompt <span class="label-hint">(用户提示词模板)</span></label>
                         <textarea id="userPrompt"></textarea>
                         <span class="hint">识别图片内容时使用的提示词</span>
                     </div>
@@ -100,9 +106,9 @@
         <section class="card">
             <h3 class="mb-1">📤 上传测试图片</h3>
             <div class="image-upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
-                <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-                <p style="color: var(--text-muted);">点击或拖拽图片到此处上传</p>
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">支持 JPG, PNG, GIF, WebP</p>
+                <input type="file" id="imageInput" accept="image/*" class="hidden-input" onchange="handleImageUpload(event)">
+                <p class="upload-text">点击或拖拽图片到此处上传</p>
+                <p class="upload-text-small">支持 JPG, PNG, GIF, WebP</p>
             </div>
             <img id="imagePreview" class="image-preview hidden">
             <div class="btn-group mt-2">
@@ -114,7 +120,7 @@
         <!-- 预设测试图片 -->
         <section class="card">
             <h3 class="mb-1">🖼️ 预设测试图片</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">点击图片进行分类测试</p>
+            <p class="preset-hint">点击图片进行分类测试</p>
             <div class="test-grid" id="imageGrid">
                 <!-- 图片列表将在这里加载 -->
             </div>
@@ -151,7 +157,15 @@
         // 折叠面板
         function toggleSection(id) {
             const body = document.getElementById(id);
+            const iconId = id.replace('Body', 'Icon');
+            const icon = document.getElementById(iconId);
+            
             body.classList.toggle('open');
+            
+            // 更新图标旋转状态
+            if (icon) {
+                icon.classList.toggle('open');
+            }
         }
 
         // 密码可见性
@@ -175,7 +189,9 @@
             status.textContent = '🔄 正在测试...';
             
             try {
-                const model = document.getElementById('modelSelect').value;
+                // 获取选中的模型
+                const modelSelect = document.getElementById('modelSelect');
+                const model = modelSelect?.value || 'o3';
                 const result = await API.testConnection(model);
                 if (result.success) {
                     status.className = 'status success mt-1';
@@ -296,7 +312,9 @@
                     sys_prompt: document.getElementById('sysPrompt').value,
                     user_prompt: document.getElementById('userPrompt').value
                 };
-                const model = document.getElementById('modelSelect').value;
+                // 获取选中的模型
+                const modelSelect = document.getElementById('modelSelect');
+                const model = modelSelect?.value || 'o3';
                 
                 const result = await API.classifyImage(currentImage, model, prompts);
                 
@@ -311,8 +329,8 @@
                             <span class="badge">${lang === 'zh' ? '中文' : 'English'}</span>
                             <span class="time">⏱️ ${result.response_time}s</span>
                         </div>
-                        <div style="margin-bottom: 1rem;">
-                            <img src="${currentImage}" style="max-width: 200px; border-radius: 8px;">
+                        <div class="mb-2">
+                            <img src="${currentImage}" class="result-image">
                         </div>
                         <div class="result-answer">
                             <h4>${lang === 'zh' ? '分类结果' : 'Classification Result'}</h4>
@@ -350,7 +368,7 @@
             ];
             
             const grid = document.getElementById('imageGrid');
-            grid.innerHTML = '<p style="color: var(--text-muted);">预设图片功能开发中...</p>';
+            grid.innerHTML = '<p class="text-muted">预设图片功能开发中...</p>';
         }
 
         // 加载配置
@@ -362,9 +380,193 @@
             }
         }
 
+        // 从 API 获取模型列表
+        async function fetchModelsFromAPI() {
+            const config = API.getConfig();
+            if (!config.base_url || !config.api_key) {
+                Components.toast('❌ 请先配置 API Base URL 和 API Key', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('fetchModelsBtn');
+            const originalText = btn?.textContent;
+            
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '⏳ 获取中...';
+            }
+            
+            try {
+                const models = await API.fetchModelsFromAPI();
+                
+                if (models.length === 0) {
+                    Components.toast('⚠️ API 返回了空模型列表', 'warning');
+                    return;
+                }
+                
+                // 保存到本地存储
+                localStorage.setItem('llm_fetched_models', JSON.stringify(models));
+                
+                // 重新初始化模型选择器
+                await initModelSelect();
+                
+                Components.toast(`✅ 成功获取 ${models.length} 个模型`, 'success');
+                
+            } catch (error) {
+                console.error('获取模型列表失败:', error);
+                Components.toast(`❌ 获取失败: ${error.message}`, 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = originalText || '🔄 从 API 获取模型';
+                }
+            }
+        }
+
+        // 更新模型显示
+        function updateModelDisplay() {
+            const modelDisplay = document.getElementById('modelDisplay');
+            const modelSelect = document.getElementById('modelSelect');
+            
+            if (!modelDisplay) return;
+            
+            let displayText = '未选择';
+            
+            if (modelSelect && modelSelect.value) {
+                const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+                if (selectedOption && !selectedOption.disabled) {
+                    displayText = selectedOption.textContent;
+                }
+            }
+            
+            modelDisplay.textContent = displayText;
+        }
+
+        // 过滤模型列表
+        function filterModels(searchTerm) {
+            const modelSelect = document.getElementById('modelSelect');
+            if (!modelSelect) return;
+            
+            const searchLower = searchTerm.toLowerCase().trim();
+            const allOptions = Array.from(modelSelect.options);
+            
+            if (!searchTerm) {
+                // 显示所有选项
+                allOptions.forEach(option => {
+                    option.style.display = '';
+                });
+                return;
+            }
+            
+            // 过滤匹配的选项
+            allOptions.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                const value = option.value.toLowerCase();
+                
+                if (text.includes(searchLower) || value.includes(searchLower)) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
+
+        // 初始化模型选择器
+        async function initModelSelect() {
+            const modelSelect = document.getElementById('modelSelect');
+            const searchInput = document.getElementById('modelSearchInput');
+            
+            if (!modelSelect) return;
+            
+            try {
+                // 清空现有选项
+                modelSelect.innerHTML = '';
+                
+                // 只添加从 API 获取的模型（如果有）
+                const fetchedModels = localStorage.getItem('llm_fetched_models');
+                if (fetchedModels) {
+                    try {
+                        const modelsList = JSON.parse(fetchedModels);
+                        if (modelsList.length > 0) {
+                            modelsList.forEach(model => {
+                                const option = document.createElement('option');
+                                option.value = model.id;
+                                option.textContent = model.name || model.id;
+                                option.dataset.fromApi = 'true';
+                                modelSelect.appendChild(option);
+                            });
+                        } else {
+                            // 如果没有模型，添加提示选项
+                            const placeholderOpt = document.createElement('option');
+                            placeholderOpt.value = '';
+                            placeholderOpt.textContent = '请先获取模型列表';
+                            placeholderOpt.disabled = true;
+                            placeholderOpt.selected = true;
+                            modelSelect.appendChild(placeholderOpt);
+                        }
+                    } catch (e) {
+                        console.error('解析保存的模型列表失败:', e);
+                        // 如果解析失败，添加提示选项
+                        const placeholderOpt = document.createElement('option');
+                        placeholderOpt.value = '';
+                        placeholderOpt.textContent = '请先获取模型列表';
+                        placeholderOpt.disabled = true;
+                        placeholderOpt.selected = true;
+                        modelSelect.appendChild(placeholderOpt);
+                    }
+                } else {
+                    // 如果没有保存的模型，添加提示选项
+                    const placeholderOpt = document.createElement('option');
+                    placeholderOpt.value = '';
+                    placeholderOpt.textContent = '请先获取模型列表';
+                    placeholderOpt.disabled = true;
+                    placeholderOpt.selected = true;
+                    modelSelect.appendChild(placeholderOpt);
+                }
+                
+                // 恢复保存的模型选择
+                const savedModel = localStorage.getItem('llm_selected_model');
+                if (savedModel) {
+                    // 检查保存的模型是否存在于当前列表中
+                    const optionExists = Array.from(modelSelect.options).some(opt => opt.value === savedModel && !opt.disabled);
+                    if (optionExists) {
+                        modelSelect.value = savedModel;
+                    }
+                }
+                
+                // 初始化显示
+                updateModelDisplay();
+                
+                // 监听模型选择变化
+                modelSelect.addEventListener('change', () => {
+                    localStorage.setItem('llm_selected_model', modelSelect.value);
+                    updateModelDisplay();
+                });
+                
+                // 监听搜索输入
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        filterModels(e.target.value);
+                    });
+                    
+                    // 按 ESC 键清空搜索
+                    searchInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape') {
+                            searchInput.value = '';
+                            filterModels('');
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('加载模型列表失败:', error);
+            }
+        }
+        
+
         // 初始化
         loadConfig();
         loadPresetImages();
+        initModelSelect();
         updatePromptsForLanguage(); // 初始化提示词
     </script>
 </body>

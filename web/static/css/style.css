@@ -262,10 +262,33 @@ body::after {
     color: var(--text-accent);
 }
 
+.collapsible-header > div {
+    flex: 1;
+    min-width: 0;
+}
+
+.model-display {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    font-weight: 400;
+    margin-top: 0.25rem;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: var(--transition-fast);
+}
+
+.collapsible-header:hover .model-display {
+    color: var(--text-primary);
+}
+
 .toggle-icon {
     color: var(--text-muted);
     transition: var(--transition-smooth);
     font-size: 0.8rem;
+    flex-shrink: 0;
+    margin-left: 1rem;
 }
 
 .toggle-icon.open {
@@ -396,6 +419,99 @@ body::after {
 .card select option {
     background: var(--bg-card-solid);
     color: var(--text-primary);
+}
+
+/* 模型选择器专用样式 */
+.model-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.model-search-input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    transition: var(--transition-fast);
+    font-family: inherit;
+}
+
+.model-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.model-search-input:hover {
+    border-color: rgba(167, 139, 250, 0.3);
+}
+
+.model-search-input:focus {
+    outline: none;
+    border-color: var(--neon-purple);
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1), 0 0 20px rgba(167, 139, 250, 0.1);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.model-select {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    max-height: 200px;
+    overflow-y: auto;
+    transition: var(--transition-fast);
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.model-select:hover {
+    border-color: rgba(167, 139, 250, 0.3);
+}
+
+.model-select:focus {
+    outline: none;
+    border-color: var(--neon-purple);
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.model-select option {
+    background: var(--bg-card-solid);
+    color: var(--text-primary);
+    padding: 0.5rem;
+}
+
+.custom-model-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    transition: var(--transition-fast);
+    font-family: inherit;
+}
+
+.custom-model-input::placeholder {
+    color: var(--text-muted);
+}
+
+.custom-model-input:hover {
+    border-color: rgba(167, 139, 250, 0.3);
+}
+
+.custom-model-input:focus {
+    outline: none;
+    border-color: var(--neon-purple);
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.1), 0 0 20px rgba(167, 139, 250, 0.1);
+    background: rgba(0, 0, 0, 0.4);
 }
 
 /* Input with toggle */
@@ -1186,9 +1302,68 @@ section h2 {
 }
 
 /* ============================================
+   Label 辅助文本样式
+   ============================================ */
+
+.label-hint {
+    font-size: 0.7rem;
+    color: var(--text-accent);
+    font-weight: 400;
+    margin-left: 0.25rem;
+}
+
+/* 上传区域文本样式 */
+.upload-text {
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.upload-text-small {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+}
+
+/* 预设图片提示文本 */
+.preset-hint {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+/* 隐藏元素 */
+.hidden-input {
+    display: none;
+}
+
+/* 图片预览样式 */
+.result-image {
+    max-width: 200px;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+/* ============================================
    Responsive Design
    ============================================ */
 
+/* 平板设备 (768px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .container {
+        padding: 1.5rem;
+    }
+    
+    .form-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .dimension-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* 移动设备 (最大 768px) */
 @media (max-width: 768px) {
     .container {
         padding: 1rem;
@@ -1220,6 +1395,38 @@ section h2 {
     
     .dimension-card {
         padding: 1.5rem;
+    }
+    
+    .card {
+        padding: 1.25rem;
+    }
+    
+    .model-select {
+        max-height: 150px;
+    }
+}
+
+/* 小屏幕设备 (最大 480px) */
+@media (max-width: 480px) {
+    .header {
+        padding: 1.5rem 1rem;
+    }
+    
+    .header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .card {
+        padding: 1rem;
+        border-radius: 16px;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
     }
 }
 

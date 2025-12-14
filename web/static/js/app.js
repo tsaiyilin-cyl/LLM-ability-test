@@ -76,9 +76,10 @@ const App = {
     },
     
     // 初始化
-    init(dimension) {
+    async init(dimension) {
         this.state.currentDimension = dimension;
         this.loadApiConfig();
+        await this.initModelSelect(); // 初始化模型选择器
         this.loadPrompts();
         this.loadTestCases();
         this.bindEvents();
@@ -104,8 +105,11 @@ const App = {
     
     // 测试连接
     async testConnection() {
-        const model = document.getElementById('modelSelect')?.value || 'o3';
-        const modelName = document.getElementById('modelSelect')?.selectedOptions[0]?.text || model;
+        const model = this.getSelectedModel();
+        const modelSelect = document.getElementById('modelSelect');
+        const modelName = modelSelect?.value === 'custom' 
+            ? document.getElementById('customModelInput')?.value || model
+            : modelSelect?.selectedOptions[0]?.text || model;
         
         Components.updateStatus('apiStatus', 'info', `🔄 正在测试 ${modelName}...`);
         
@@ -251,7 +255,7 @@ const App = {
             return;
         }
         
-        const model = document.getElementById('modelSelect')?.value || 'o3';
+        const model = this.getSelectedModel();
         const lang = document.getElementById('langSelect')?.value || 'zh';
         const prompts = this.getPrompts();
         const btn = document.getElementById('runTestBtn');
@@ -367,6 +371,207 @@ const App = {
         Components.toast('✅ 结果已清空，评估数据已清除', 'success');
     },
     
+    // 更新模型显示
+    updateModelDisplay() {
+        const modelDisplay = document.getElementById('modelDisplay');
+        const modelSelect = document.getElementById('modelSelect');
+        
+        if (!modelDisplay) return;
+        
+        let displayText = '未选择';
+        
+        if (modelSelect && modelSelect.value) {
+            const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+            if (selectedOption && !selectedOption.disabled) {
+                displayText = selectedOption.textContent;
+            }
+        }
+        
+        modelDisplay.textContent = displayText;
+    },
+    
+    // 初始化模型选择器
+    async initModelSelect() {
+        const modelSelect = document.getElementById('modelSelect');
+        const searchInput = document.getElementById('modelSearchInput');
+        
+        if (!modelSelect) return;
+        
+        try {
+            // 清空现有选项
+            modelSelect.innerHTML = '';
+            
+            // 只添加从 API 获取的模型（如果有）
+            const fetchedModels = localStorage.getItem('llm_fetched_models');
+            if (fetchedModels) {
+                try {
+                    const modelsList = JSON.parse(fetchedModels);
+                    if (modelsList.length > 0) {
+                        modelsList.forEach(model => {
+                            const option = document.createElement('option');
+                            option.value = model.id;
+                            option.textContent = model.name || model.id;
+                            option.dataset.fromApi = 'true';
+                            modelSelect.appendChild(option);
+                        });
+                    } else {
+                        // 如果没有模型，添加提示选项
+                        const placeholderOpt = document.createElement('option');
+                        placeholderOpt.value = '';
+                        placeholderOpt.textContent = '请先获取模型列表';
+                        placeholderOpt.disabled = true;
+                        placeholderOpt.selected = true;
+                        modelSelect.appendChild(placeholderOpt);
+                    }
+                } catch (e) {
+                    console.error('解析保存的模型列表失败:', e);
+                    // 如果解析失败，添加提示选项
+                    const placeholderOpt = document.createElement('option');
+                    placeholderOpt.value = '';
+                    placeholderOpt.textContent = '请先获取模型列表';
+                    placeholderOpt.disabled = true;
+                    placeholderOpt.selected = true;
+                    modelSelect.appendChild(placeholderOpt);
+                }
+            } else {
+                // 如果没有保存的模型，添加提示选项
+                const placeholderOpt = document.createElement('option');
+                placeholderOpt.value = '';
+                placeholderOpt.textContent = '请先获取模型列表';
+                placeholderOpt.disabled = true;
+                placeholderOpt.selected = true;
+                modelSelect.appendChild(placeholderOpt);
+            }
+            
+            // 恢复保存的模型选择
+            const savedModel = localStorage.getItem('llm_selected_model');
+            if (savedModel) {
+                // 检查保存的模型是否存在于当前列表中
+                const optionExists = Array.from(modelSelect.options).some(opt => opt.value === savedModel && !opt.disabled);
+                if (optionExists) {
+                    modelSelect.value = savedModel;
+                }
+            }
+            
+            // 初始化显示
+            this.updateModelDisplay();
+            
+            // 监听模型选择变化
+            modelSelect.addEventListener('change', () => {
+                localStorage.setItem('llm_selected_model', modelSelect.value);
+                this.updateModelDisplay();
+            });
+            
+            // 监听搜索输入
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    this.filterModels(e.target.value);
+                });
+                
+                // 按 ESC 键清空搜索
+                searchInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        searchInput.value = '';
+                        this.filterModels('');
+                    }
+                });
+            }
+            
+        } catch (error) {
+            console.error('加载模型列表失败:', error);
+            Components.toast('⚠️ 加载模型列表失败', 'warning');
+        }
+    },
+    
+    // 过滤模型列表
+    filterModels(searchTerm) {
+        const modelSelect = document.getElementById('modelSelect');
+        if (!modelSelect) return;
+        
+        const searchLower = searchTerm.toLowerCase().trim();
+        const allOptions = Array.from(modelSelect.options);
+        
+        if (!searchTerm) {
+            // 显示所有选项
+            allOptions.forEach(option => {
+                option.style.display = '';
+            });
+            return;
+        }
+        
+        // 过滤匹配的选项
+        allOptions.forEach(option => {
+            const text = option.textContent.toLowerCase();
+            const value = option.value.toLowerCase();
+            
+            if (text.includes(searchLower) || value.includes(searchLower)) {
+                option.style.display = '';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+    },
+    
+    // 从 API 获取模型列表
+    async fetchModelsFromAPI() {
+        const config = API.getConfig();
+        if (!config.base_url || !config.api_key) {
+            Components.toast('❌ 请先配置 API Base URL 和 API Key', 'error');
+            return;
+        }
+        
+        const btn = document.getElementById('fetchModelsBtn');
+        const originalText = btn?.textContent;
+        
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = '⏳ 获取中...';
+        }
+        
+        Components.updateStatus('apiStatus', 'info', '🔄 正在从 API 获取模型列表...');
+        
+        try {
+            const models = await API.fetchModelsFromAPI();
+            
+            if (models.length === 0) {
+                Components.updateStatus('apiStatus', 'warning', '⚠️ API 返回了空模型列表');
+                Components.toast('⚠️ API 返回了空模型列表', 'warning');
+                return;
+            }
+            
+            // 保存到本地存储
+            localStorage.setItem('llm_fetched_models', JSON.stringify(models));
+            
+            // 重新初始化模型选择器
+            await this.initModelSelect();
+            
+            // 更新显示
+            this.updateModelDisplay();
+            
+            Components.updateStatus('apiStatus', 'success', `✅ 成功获取 ${models.length} 个模型，可在搜索框中输入关键词快速查找`);
+            Components.toast(`✅ 成功获取 ${models.length} 个模型`, 'success');
+            
+        } catch (error) {
+            console.error('获取模型列表失败:', error);
+            Components.updateStatus('apiStatus', 'error', `❌ 获取失败: ${error.message}`);
+            Components.toast(`❌ 获取失败: ${error.message}`, 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = originalText || '🔄 从 API 获取模型';
+            }
+        }
+    },
+    
+    // 获取当前选择的模型
+    getSelectedModel() {
+        const modelSelect = document.getElementById('modelSelect');
+        
+        if (!modelSelect) return 'o3';
+        
+        return modelSelect.value || 'o3';
+    },
+    
     // 绑定事件
     bindEvents() {
         // 语言切换
@@ -377,7 +582,8 @@ const App = {
         
         // 模型切换
         document.getElementById('modelSelect')?.addEventListener('change', () => {
-            const modelName = document.getElementById('modelSelect')?.selectedOptions[0]?.text || '';
+            const model = this.getSelectedModel();
+            const modelName = document.getElementById('modelSelect')?.selectedOptions[0]?.text || model;
             Components.updateStatus('apiStatus', 'warning', `⚪ 已切换到 ${modelName}，请重新测试连接`);
         });
         

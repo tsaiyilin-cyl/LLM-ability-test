@@ -10,6 +10,7 @@ from openai import OpenAI
 import time
 import base64
 import os
+import requests
 
 from config import OPENAI_API_BASE, OPENAI_API_KEY, AVAILABLE_MODELS
 
@@ -268,8 +269,106 @@ def get_dimensions():
 
 @app.route('/api/models', methods=['GET'])
 def get_models():
-    """获取可用模型列表"""
+    """获取可用模型列表（预设）"""
     return jsonify(AVAILABLE_MODELS)
+
+
+@app.route('/api/fetch-models', methods=['POST'])
+def fetch_models_from_api():
+    """从 API 获取可用模型列表"""
+    data = request.json
+    base_url = data.get('base_url')
+    api_key = data.get('api_key')
+    
+    if not base_url or not api_key:
+        return jsonify({"success": False, "error": "缺少 API 配置"}), 400
+    
+    try:
+        client = get_client(base_url, api_key)
+        
+        # 尝试调用 /v1/models 端点获取模型列表
+        # 注意：不是所有 API 都支持这个端点
+        try:
+            # 构建正确的 URL
+            if not base_url.endswith('/v1') and not base_url.endswith('/v2'):
+                # 检测是否为文心一言API
+                is_ernie = 'qianfan.baidubce.com' in base_url or 'baidubce.com' in base_url
+                if is_ernie:
+                    models_url = base_url.rstrip('/') + '/v2/models'
+                else:
+                    models_url = base_url.rstrip('/') + '/v1/models'
+            else:
+                models_url = base_url.rstrip('/') + '/models'
+            
+            # 使用 requests 直接调用，因为 OpenAI SDK 可能不支持所有端点
+            headers = {
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json'
+            }
+            
+            response = requests.get(models_url, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                models_data = response.json()
+                models = []
+                
+                # 解析不同格式的响应
+                if isinstance(models_data, dict) and 'data' in models_data:
+                    # OpenAI 格式: {"data": [{"id": "...", ...}, ...]}
+                    for model in models_data['data']:
+                        model_id = model.get('id', '')
+                        if model_id:
+                            models.append({
+                                "id": model_id,
+                                "name": model.get('id', model_id)  # 使用 id 作为显示名称
+                            })
+                elif isinstance(models_data, list):
+                    # 直接是列表格式
+                    for model in models_data:
+                        if isinstance(model, dict):
+                            model_id = model.get('id', model.get('model_id', ''))
+                            if model_id:
+                                models.append({
+                                    "id": model_id,
+                                    "name": model.get('name', model_id)
+                                })
+                        elif isinstance(model, str):
+                            models.append({"id": model, "name": model})
+                
+                if models:
+                    return jsonify({
+                        "success": True,
+                        "models": models,
+                        "count": len(models)
+                    })
+                else:
+                    return jsonify({
+                        "success": False,
+                        "error": "API 返回了空模型列表",
+                        "raw_response": models_data
+                    })
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": f"API 请求失败: {response.status_code} - {response.text}"
+                })
+                
+        except requests.exceptions.RequestException as e:
+            return jsonify({
+                "success": False,
+                "error": f"请求失败: {str(e)}"
+            })
+        except Exception as e:
+            return jsonify({
+                "success": False,
+                "error": f"解析响应失败: {str(e)}"
+            })
+            
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": f"获取模型列表失败: {str(e)}"
+        }), 500
 
 
 @app.route('/api/test-cases/<dimension>', methods=['GET'])
