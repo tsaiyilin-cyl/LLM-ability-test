@@ -58,29 +58,62 @@ OPENAI_API_KEY = "your-api-key-here"        # 你的 API Key
 | 😂 谐音梗解释 | 测试中文谐音梗理解能力 | 10 | ✅ 可用 |
 | 💭 幻觉问题 | 测试模型幻觉发生与纠正 | 10 | ✅ 可用 |
 
-## 🤖 支持的模型
+## 🤖 支持的 API 服务
 
-### 国内模型
-- **文心 5.0** (`ernie-5.0-thinking-preview`)
-- **豆包** (`doubao-pro-32k`)
-- **Kimi** (`moonshot-v1-8k`)
-- **通义千问** (`qwen-turbo`)
+平台支持所有符合 OpenAI 兼容 API 格式的服务。以下是常见的 API Base URL：
 
-### 国外模型
-- **OpenAI o3** (`o3`)
-- **GPT-5.2 Thinking** (`gpt-5.2-thinking`)
-- **Claude 3.5 Sonnet** (`claude-3-5-sonnet-20241022`)
-- **Gemini 3 Pro Thinking** (`gemini-3-pro-preview-thinking-*`)
-- **Gemini 2.5 Pro Thinking** (`gemini-2.5-pro-preview-thinking`)
-- **Grok** (`grok-beta`)
-- **Llama 3.1** (`llama-3.1-70b-instruct`)
+### 国内云服务商
 
-> 💡 **提示**：所有模型都通过统一的 OpenAI 兼容 API 接口调用，支持自定义 API Base URL 和 API Key。
+- **阿里云（通义千问）**
+  - Base URL: `https://dashscope.aliyuncs.com/compatible-mode/v1`
+  - 文档: [阿里云 DashScope](https://help.aliyun.com/zh/model-studio/)
 
-### 特殊 API 支持
+- **腾讯云（混元）**
+  - Base URL: `https://api.hunyuan.cloud.tencent.com`
+  - 文档: [腾讯云混元](https://cloud.tencent.com/product/hunyuan)
 
-- **文心一言（千帆平台）**：平台自动识别文心一言 API，并使用 `/v2` 路径进行调用
-- **动态模型获取**：支持通过 `/api/fetch-models` 接口从 API 服务端动态获取可用模型列表，无需手动配置
+- **百度（文心一言/千帆）**
+  - Base URL: `https://qianfan.baidubce.com/v2`
+  - 文档: [百度千帆](https://cloud.baidu.com/product/qianfan.html)
+  - ⚠️ **注意**：平台会自动识别并添加 `/v2` 路径
+
+- **字节跳动（豆包）**
+  - Base URL: `https://ark.cn-beijing.volces.com/api/v3`
+  - 文档: [火山引擎豆包](https://www.volcengine.com/product/doubao)
+
+- **智谱AI（GLM）**
+  - Base URL: `https://open.bigmodel.cn/api/paas/v4`
+  - 文档: [智谱AI开放平台](https://open.bigmodel.cn/)
+
+- **月之暗面（Kimi）**
+  - Base URL: `https://api.moonshot.cn/v1`
+  - 文档: [Moonshot AI](https://platform.moonshot.cn/)
+
+### 国外服务商
+
+- **OpenAI**
+  - Base URL: `https://api.openai.com/v1`
+  - 文档: [OpenAI API](https://platform.openai.com/docs)
+
+- **Anthropic（Claude）**
+  - Base URL: `https://api.anthropic.com/v1`
+  - 文档: [Anthropic API](https://docs.anthropic.com/)
+
+- **Google（Gemini）**
+  - Base URL: `https://generativelanguage.googleapis.com/v1`
+  - 文档: [Google AI Studio](https://makersuite.google.com/app/apikey)
+
+### 代理服务
+
+- **WhatAI**（示例）
+  - Base URL: `https://api.whatai.cc/v1`
+  - 说明：第三方代理服务，支持多种模型
+
+> 💡 **提示**：
+> - 所有 API 都通过统一的 OpenAI 兼容接口调用
+> - 如果 Base URL 未包含版本号（如 `/v1`），平台会自动添加 `/v1`（文心一言自动添加 `/v2`）
+> - 支持通过 `/api/fetch-models` 接口从 API 服务端动态获取可用模型列表
+> - 具体模型名称请参考各服务商的文档
 
 ## 📁 项目结构
 
