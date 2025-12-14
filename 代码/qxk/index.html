@@ -12,6 +12,7 @@
     .row { margin: 12px 0; }
     .btn { padding: 10px 14px; cursor: pointer; border: 1px solid #111; background: #111; color: #fff; border-radius: 10px; }
     .btn:active { transform: translateY(1px); }
+    .btn-secondary { border: 1px solid #ddd; background: #fff; color: #111; }
     pre { background: #0b1020; color: #e6e6e6; padding: 12px; overflow: auto; border-radius: 10px; }
     label { font-weight: 600; display: block; margin-bottom: 6px; }
     .hint { color: #666; font-size: 12px; margin-top: 6px; }
@@ -26,10 +27,13 @@
     .img-preview { width: 96px; height: 96px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #fafafa; display: flex; align-items: center; justify-content: center; }
     .img-preview img { width: 100%; height: 100%; object-fit: cover; display: none; }
     .img-preview .placeholder { color: #888; font-size: 12px; }
+    .toggle { display: inline-flex; align-items: center; gap: 8px; user-select: none; }
+    .toggle input { width: auto; }
+    .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
-  <h2>图片分类（最基础示例）</h2>
+  <h2>图片分类</h2>
 
   <div class="row card">
     <div class="grid-2">
@@ -38,6 +42,7 @@
         <select id="baseApi">
           <option value="https://api.hunyuan.cloud.tencent.com/v1">https://api.hunyuan.cloud.tencent.com/v1</option>
           <option value="https://api.whatai.cc" selected>https://api.whatai.cc</option>
+          <option value="https://api.openai.com/v1">https://api.openai.com/v1</option>
         </select>
         <div class="hint">如需自定义，可在右侧输入框覆盖</div>
       </div>
@@ -90,7 +95,14 @@
     </div>
 
     <div class="row" style="margin-top: 14px;">
-      <button class="btn" id="sendBtn">发送</button>
+      <div class="actions">
+        <button class="btn" id="sendBtn">发送</button>
+        <label class="toggle" title="开启后将使用 Responses API + web_search 工具（纯文本模式）">
+          <input id="useWebSearch" type="checkbox" />
+          <span>是否联网（web_search）</span>
+        </label>
+        <span class="hint">开启后仅支持纯文本（不能上传图片）</span>
+      </div>
     </div>
   </div>
 
@@ -182,12 +194,14 @@
     const sys = document.getElementById('sys').value;
     const user = document.getElementById('user').value;
     const imageFile = document.getElementById('image').files[0];
+    const useWebSearch = document.getElementById('useWebSearch').checked;
 
     const form = new FormData();
     form.append('base_url', baseUrl);
     form.append('model', model);
     form.append('system_prompt', sys);
     form.append('user_prompt', user);
+    form.append('use_web_search', useWebSearch ? '1' : '0');
     if (imageFile) form.append('image', imageFile);
 
     contentOut.textContent = 'Loading...';
