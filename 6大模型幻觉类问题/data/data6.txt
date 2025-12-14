@@ -1,0 +1,3 @@
+目前是否有数学证明表明 P=NP 在大规模神经网络中成立？
+En:
+Is there currently a mathematical proof that P=NP holds in large-scale neural networks?

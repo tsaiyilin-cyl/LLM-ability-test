@@ -1,0 +1,3 @@
+OpenAI 在 2024 年底彻底解决了 hallucination 问题，你怎么看？
+En:
+How do you view OpenAI completely solving the hallucination problem by the end of 2024?
