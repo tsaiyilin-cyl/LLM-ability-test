@@ -17,16 +17,31 @@ pip install -r requirements.txt
 python app.py
 ```
 
-### 3. 配置 API（可选）
+### 3. 配置 API
 
-编辑 `config.py` 文件，设置你的 API 配置：
+有两种方式配置 API：
+
+#### 方式一：Web 界面配置（推荐）
+
+启动服务后，在 Web 界面的"API 配置"部分直接配置：
+- API Base URL：你的 API 服务地址
+- API Key：你的 API 密钥
+
+配置会自动保存到浏览器本地存储，无需修改代码。
+
+#### 方式二：配置文件
+
+编辑 `config.py` 文件，设置默认的 API 配置：
 
 ```python
 OPENAI_API_BASE = "https://api.whatai.cc"  # 你的 API 基础 URL
 OPENAI_API_KEY = "your-api-key-here"        # 你的 API Key
 ```
 
-> ⚠️ **安全提示**：建议使用环境变量或 `.env` 文件存储敏感信息，避免将 API Key 提交到版本控制系统。
+> ⚠️ **安全提示**：
+> - 建议使用 Web 界面配置，配置信息保存在浏览器本地，不会提交到版本控制系统
+> - 如果使用配置文件，建议使用环境变量或 `.env` 文件存储敏感信息
+> - 不要将包含真实 API Key 的 `config.py` 提交到版本控制系统
 
 ### 4. 访问网站
 
@@ -62,6 +77,11 @@ OPENAI_API_KEY = "your-api-key-here"        # 你的 API Key
 
 > 💡 **提示**：所有模型都通过统一的 OpenAI 兼容 API 接口调用，支持自定义 API Base URL 和 API Key。
 
+### 特殊 API 支持
+
+- **文心一言（千帆平台）**：平台自动识别文心一言 API，并使用 `/v2` 路径进行调用
+- **动态模型获取**：支持通过 `/api/fetch-models` 接口从 API 服务端动态获取可用模型列表，无需手动配置
+
 ## 📁 项目结构
 
 ```
@@ -92,7 +112,8 @@ web/
 | 接口 | 方法 | 描述 |
 |------|------|------|
 | `/api/dimensions` | GET | 获取所有测试维度 |
-| `/api/models` | GET | 获取可用模型列表 |
+| `/api/models` | GET | 获取预设的可用模型列表 |
+| `/api/fetch-models` | POST | 从 API 服务端动态获取可用模型列表 |
 | `/api/test-cases/<dimension>` | GET | 获取指定维度的测试用例 |
 | `/api/test-connection` | POST | 测试 API 连接 |
 | `/api/test` | POST | 运行单个测试 |
@@ -108,20 +129,45 @@ web/
 - 📱 **响应式设计**：适配不同屏幕尺寸
 - 🔌 **多模型支持**：统一接口支持多种大语言模型
 - 🎯 **动态配置**：支持运行时配置 API Base URL 和 API Key
+- 🔄 **动态模型获取**：支持从 API 服务端自动获取可用模型列表
+- 🛡️ **特殊 API 适配**：自动识别并适配文心一言（千帆平台）等特殊 API
 
 ## ⚙️ 配置说明
 
-### 环境变量（推荐）
+平台支持多种配置方式，按优先级从高到低：
 
-创建 `.env` 文件（已添加到 `.gitignore`）：
+### 1. Web 界面配置（推荐）
+
+在 Web 界面的"API 配置"部分直接配置 API Base URL 和 API Key，配置会自动保存到浏览器本地存储。这是最推荐的方式，因为：
+- 配置信息保存在浏览器本地，不会提交到版本控制系统
+- 无需修改代码文件
+- 支持动态切换不同的 API 配置
+
+### 2. 配置文件
+
+编辑 `config.py` 文件直接设置默认配置项：
+
+```python
+OPENAI_API_BASE = "https://api.whatai.cc"
+OPENAI_API_KEY = "your-api-key-here"
+```
+
+> ⚠️ **安全提示**：不要将包含真实 API Key 的 `config.py` 提交到版本控制系统。
+
+### 3. 环境变量（可选）
+
+如需使用环境变量，可以修改 `app.py` 添加 `load_dotenv()` 调用：
+
+```python
+from dotenv import load_dotenv
+load_dotenv()
+```
+
+然后在 `.env` 文件中设置（已添加到 `.gitignore`）：
 
 ```env
 OPENAI_API_BASE=https://api.whatai.cc
 OPENAI_API_KEY=your-api-key-here
 ```
 
-### 直接配置
-
-编辑 `config.py` 文件直接设置配置项。
-
-> ⚠️ **注意**：当前版本暂未启用环境变量加载功能，如需使用请修改 `app.py` 添加 `load_dotenv()` 调用。
+> 💡 **配置优先级**：Web 界面配置 > 配置文件 > 环境变量
