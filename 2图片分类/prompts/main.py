@@ -5,7 +5,7 @@ sys_prompt_2 = """
 你是一个出色的颜色识别助手，对于用户输入的一张纯色图，正确输出正确的颜色类别。
 """
 sys_prompt_3 = '''
-你是一个出色的情绪识别助手，对于用户输入的一张图片，识别图片中任务的情绪。
+你是一个出色的情绪识别助手，对于用户输入的一张图片，识别图片中人物的情绪。
 '''
 user_prompt = '''
 识别图片中的内容，再回答正确分类之前先输出理由。输出格式为。
@@ -14,7 +14,6 @@ user_prompt = '''
 2.answer
 {{在这里输出最终的类别名，例如：狸花猫}}
 '''
-D:\CommonFiles\GitHub\LLM-abitily-test\代码\qxk
 
 def parse(completions):
     import re
