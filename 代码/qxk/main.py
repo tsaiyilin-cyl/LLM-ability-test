@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from openai import AsyncOpenAI
 
 _here = os.path.dirname(os.path.abspath(__file__))
-_repo_root_env = os.path.abspath(os.path.join(_here, "..", ".env"))
+_repo_root_env = os.path.abspath(os.path.join(_here, "..", "..", ".env"))
 load_dotenv(_repo_root_env)
 
 app = FastAPI()
@@ -26,6 +26,7 @@ async def chat(
     model=Form("hunyuan-vision"),
     system_prompt=Form(""),
     user_prompt=Form(""),
+    use_web_search=Form("0"),
     image=File(None),
 ):
     base_url = (base_url or "").strip().rstrip("/")
@@ -34,6 +35,8 @@ async def chat(
     if not base_url.endswith("/v1"):
         base_url = f"{base_url}/v1"
 
+    use_web_search = str(use_web_search).strip().lower() in {"1", "true", "on", "yes"}
+
     if "hunyuan.cloud.tencent.com" in base_url:
         api_key = os.getenv("HUNYUAN_API_KEY") or os.getenv("TENCENT_API_KEY")
         if not api_key:
@@ -41,6 +44,10 @@ async def chat(
                 status_code=400,
                 detail="Missing HUNYUAN_API_KEY (or TENCENT_API_KEY) env var for Tencent Hunyuan base_url",
             )
+    elif "api.openai.com" in base_url:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=400, detail="Missing OPENAI_API_KEY env var for OpenAI base_url")
     else:
         api_key = os.getenv("WHATAI_API_KEY") or os.getenv("OPENAI_API_KEY")
         if not api_key:
@@ -48,38 +55,63 @@ async def chat(
 
     client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
-    user_content = None
-    if image is None:
-        user_content = [{"type": "text", "text": user_prompt}]
+    if use_web_search:
+        if image is not None:
+            raise HTTPException(status_code=400, detail="web_search mode currently supports text-only (no image)")
+
+        try:
+            resp = await client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                extra_body={"enable_search": True},
+                timeout=60,
+            )
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Upstream request failed: {e}")
+
+        try:
+            content = resp.choices[0].message.content or ""
+        except Exception:
+            content = ""
+
+        raw = resp.model_dump()
     else:
-        raw = await image.read()
-        if not raw:
-            raise HTTPException(status_code=400, detail="Empty image file")
-        mime = getattr(image, "content_type", None) or "application/octet-stream"
-        b64 = base64.b64encode(raw).decode("utf-8")
-        user_content = [
-            {"type": "text", "text": user_prompt},
-            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
-        ]
+        user_content = None
+        if image is None:
+            user_content = [{"type": "text", "text": user_prompt}]
+        else:
+            raw_img = await image.read()
+            if not raw_img:
+                raise HTTPException(status_code=400, detail="Empty image file")
+            mime = getattr(image, "content_type", None) or "application/octet-stream"
+            b64 = base64.b64encode(raw_img).decode("utf-8")
+            user_content = [
+                {"type": "text", "text": user_prompt},
+                {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
+            ]
 
-    try:
-        resp = await client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content},
-            ],
-            timeout=60,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Upstream request failed: {e}")
+        try:
+            resp = await client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content},
+                ],
+                timeout=60,
+            )
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Upstream request failed: {e}")
 
-    try:
-        content = resp.choices[0].message.content or ""
-    except Exception:
-        content = ""
+        try:
+            content = resp.choices[0].message.content or ""
+        except Exception:
+            content = ""
 
-    raw = resp.model_dump()
+        raw = resp.model_dump()
+
     usage = raw.get("usage") or {}
     completion_tokens = usage.get("completion_tokens")
     prompt_tokens = usage.get("prompt_tokens")
