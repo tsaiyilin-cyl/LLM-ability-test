@@ -14,7 +14,7 @@ user_prompt = '''
 2.answer
 {{在这里输出最终的类别名，例如：狸花猫}}
 '''
-
+D:\CommonFiles\GitHub\LLM-abitily-test\代码\qxk
 
 def parse(completions):
     import re
