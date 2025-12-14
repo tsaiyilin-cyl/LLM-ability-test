@@ -43,10 +43,10 @@
 | 豆包     | Claude     |
 | Kimi     | Gemini 2.5    |
 | 通义千问 | ChatGPT-o3  |
-| 文心一言 | ChatGPT-5.2 |
-| 腾讯元宝 | Gemini 3    |
+| 文心一言 | ChatGPT-5.2* |
+| 腾讯元宝 | Gemini 3*    |
 
-
+> *注：我们认为 GPT的不同版本,Genimi的不同版本在这些问题上的差异较为显著，因此分开测评。
 ---
 
 ## 测评维度
