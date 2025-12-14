@@ -72,6 +72,33 @@ const API = {
     async getDimensions() {
         const response = await fetch('/api/dimensions');
         return response.json();
+    },
+    
+    // 获取可用模型列表（预设）
+    async getModels() {
+        const response = await fetch('/api/models');
+        return response.json();
+    },
+    
+    // 从 API 获取可用模型列表
+    async fetchModelsFromAPI() {
+        const config = this.getConfig();
+        if (!config.base_url || !config.api_key) {
+            throw new Error('请先配置 API Base URL 和 API Key');
+        }
+        
+        const response = await fetch('/api/fetch-models', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(result.error || '获取模型列表失败');
+        }
+        
+        return result.models || [];
     }
 };
 
