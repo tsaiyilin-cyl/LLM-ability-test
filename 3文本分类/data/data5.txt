@@ -1,0 +1,3 @@
+红色，黄色，蓝色，紫色，绿色，黑色，橙色
+En:
+Red, Yellow, Blue, Purple, Green, Black, Orange

@@ -1,0 +1,3 @@
+书桌，椅子，尺子，钢笔，橡皮，课本，矿泉水
+En:
+Desk, Chair, Ruler, Pen, Eraser, Textbook, Bottled Water
