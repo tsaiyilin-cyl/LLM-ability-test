@@ -1101,10 +1101,16 @@ const Components = {
     },
     
     // 创建错误卡片
-    createErrorCard(caseId, error) {
+    createErrorCard(caseId, error, testParams = null) {
         const card = document.createElement('div');
-        card.className = 'result-card';
+        card.className = 'result-card error-card';
+        card.id = `error-${caseId}`;
         card.style.borderColor = 'var(--accent-danger)';
+        
+        // 保存测试参数供重试使用
+        if (testParams) {
+            card.dataset.testParams = JSON.stringify(testParams);
+        }
         
         card.innerHTML = `
             <div class="result-meta">
@@ -1115,7 +1121,33 @@ const Components = {
                 <h4>错误信息</h4>
                 <pre style="color: var(--accent-danger);">${error}</pre>
             </div>
+            <div class="error-actions" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                <button class="btn btn-primary btn-sm retry-btn" data-case-id="${caseId}">
+                    🔄 重试此任务
+                </button>
+                <button class="btn btn-secondary btn-sm dismiss-btn" data-case-id="${caseId}">
+                    ✖️ 忽略
+                </button>
+            </div>
         `;
+        
+        // 绑定重试按钮事件
+        const retryBtn = card.querySelector('.retry-btn');
+        if (retryBtn) {
+            retryBtn.onclick = () => {
+                if (typeof App !== 'undefined' && App.retryTest) {
+                    App.retryTest(caseId, card);
+                }
+            };
+        }
+        
+        // 绑定忽略按钮事件
+        const dismissBtn = card.querySelector('.dismiss-btn');
+        if (dismissBtn) {
+            dismissBtn.onclick = () => {
+                card.remove();
+            };
+        }
         
         return card;
     },

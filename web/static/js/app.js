@@ -383,6 +383,17 @@ const App = {
                     
                     document.getElementById(`loading-${loadingId}`)?.remove();
                     
+                    // 构建测试参数供重试使用
+                    const testParams = {
+                        dimension: this.state.currentDimension,
+                        model,
+                        case_id: caseId,
+                        lang: testLang,
+                        consistency_test: consistencyTest,
+                        repeat_times: consistencyTest ? validRepeatTimes : 1,
+                        ...prompts
+                    };
+                    
                     if (result.success) {
                         // 添加 dimension 和 lang 字段到结果中
                         result.dimension = this.state.currentDimension;
@@ -398,12 +409,22 @@ const App = {
                         container?.appendChild(card);
                         this.updateStats();
                     } else {
-                        const errorCard = Components.createErrorCard(loadingId, result.error);
+                        const errorCard = Components.createErrorCard(loadingId, result.error, testParams);
                         container?.appendChild(errorCard);
                     }
                 } catch (error) {
                     document.getElementById(`loading-${loadingId}`)?.remove();
-                    const errorCard = Components.createErrorCard(loadingId, error.message);
+                    // 构建测试参数供重试使用
+                    const testParams = {
+                        dimension: this.state.currentDimension,
+                        model,
+                        case_id: caseId,
+                        lang: testLang,
+                        consistency_test: consistencyTest,
+                        repeat_times: consistencyTest ? validRepeatTimes : 1,
+                        ...prompts
+                    };
+                    const errorCard = Components.createErrorCard(loadingId, error.message, testParams);
                     container?.appendChild(errorCard);
                 }
             }
@@ -412,6 +433,71 @@ const App = {
         if (btn) {
             btn.disabled = false;
             btn.textContent = '🚀 运行选中测试';
+        }
+    },
+    
+    // 重试单个失败的测试
+    async retryTest(caseId, errorCard) {
+        // 从错误卡片获取测试参数
+        let testParams = null;
+        if (errorCard && errorCard.dataset.testParams) {
+            try {
+                testParams = JSON.parse(errorCard.dataset.testParams);
+            } catch (e) {
+                console.error('解析测试参数失败:', e);
+            }
+        }
+        
+        if (!testParams) {
+            Components.toast('❌ 无法获取测试参数，请重新运行测试', 'error');
+            return;
+        }
+        
+        const container = document.getElementById('resultsContainer');
+        
+        // 替换错误卡片为加载指示器
+        const loadingId = caseId;
+        const loading = Components.createLoading(loadingId, `正在重试 ${testParams.case_id} (${testParams.lang === 'zh' ? '中文' : 'English'})...`);
+        
+        if (errorCard && errorCard.parentNode) {
+            errorCard.parentNode.replaceChild(loading, errorCard);
+        } else {
+            container?.appendChild(loading);
+        }
+        
+        try {
+            const result = await API.runTest(testParams);
+            
+            document.getElementById(`loading-${loadingId}`)?.remove();
+            
+            if (result.success) {
+                // 添加 dimension 和 lang 字段到结果中
+                result.dimension = testParams.dimension;
+                result.test_lang = testParams.lang;
+                
+                // 检查是否需要显示语言标识
+                const lang = document.getElementById('langSelect')?.value || 'zh';
+                if (lang === 'all') {
+                    result.case_id_display = `${testParams.case_id} (${testParams.lang === 'zh' ? '中文' : 'EN'})`;
+                }
+                
+                this.state.testResults.push(result);
+                this.saveTestResults();
+                const card = Components.createResultCard(result);
+                container?.appendChild(card);
+                this.updateStats();
+                
+                Components.toast('✅ 重试成功！', 'success');
+            } else {
+                const newErrorCard = Components.createErrorCard(loadingId, result.error, testParams);
+                container?.appendChild(newErrorCard);
+                Components.toast('❌ 重试失败', 'error');
+            }
+        } catch (error) {
+            document.getElementById(`loading-${loadingId}`)?.remove();
+            const newErrorCard = Components.createErrorCard(loadingId, error.message, testParams);
+            container?.appendChild(newErrorCard);
+            Components.toast('❌ 重试失败: ' + error.message, 'error');
         }
     },
     
