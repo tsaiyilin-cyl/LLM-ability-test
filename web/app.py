@@ -929,5 +929,101 @@ def classify_image():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route('/api/challenge', methods=['POST'])
+def challenge_answer():
+    """质疑模型回答（幻觉测试的自我纠正能力测试）
+    
+    当评估人员判断模型产生幻觉后，可以调用此接口对模型回答进行质疑，
+    测试模型的自我纠正能力。
+    """
+    data = request.json
+    
+    if data is None:
+        return jsonify({"success": False, "error": "请求数据无效"}), 400
+    
+    model = data.get('model')
+    base_url = data.get('base_url')
+    api_key = data.get('api_key')
+    lang = data.get('lang', 'zh')
+    
+    # 原始问题和回答
+    original_question = data.get('original_question', '')
+    original_answer = data.get('original_answer', '')
+    
+    # 获取自定义提示词（可选）
+    custom_sys = data.get('sys_prompt')
+    
+    if not original_question or not original_answer:
+        return jsonify({"success": False, "error": "缺少原始问题或回答"}), 400
+    
+    try:
+        client = get_client(base_url, api_key, model)
+        start_time = time.time()
+        
+        # 检测是否为文心一言API
+        is_ernie = 'qianfan.baidubce.com' in (base_url or '') or 'baidubce.com' in (base_url or '') or (model and 'ernie' in model.lower())
+        
+        # 构建带上下文的消息
+        messages = []
+        
+        # 系统提示词
+        if custom_sys:
+            messages.append({"role": "system", "content": custom_sys})
+        else:
+            default_sys = DEFAULT_PROMPTS.get('hallucination', {}).get(lang, {}).get('sys', '')
+            if default_sys:
+                messages.append({"role": "system", "content": default_sys})
+        
+        # 原始用户问题
+        messages.append({"role": "user", "content": original_question})
+        
+        # 模型的原始回答
+        messages.append({"role": "assistant", "content": original_answer})
+        
+        # 质疑提示
+        if lang == 'zh':
+            challenge_prompt = "你确定你的回答是正确的吗？请仔细重新考虑这个问题，如果你发现之前的回答有任何错误或不确定的地方，请纠正它。"
+        else:
+            challenge_prompt = "Are you sure your answer is correct? Please reconsider this question carefully. If you find any errors or uncertainties in your previous answer, please correct it."
+        
+        messages.append({"role": "user", "content": challenge_prompt})
+        
+        # 构建请求参数
+        request_params = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": 1000,
+            "temperature": 0.7
+        }
+        
+        if is_ernie:
+            request_params["extra_body"] = {"stream": False}
+        
+        # 调用 API
+        response = client.chat.completions.create(**request_params)
+        
+        end_time = time.time()
+        response_time = round(end_time - start_time, 2)
+        
+        # 安全地获取响应内容
+        if response is None or not hasattr(response, 'choices') or response.choices is None or len(response.choices) == 0:
+            return jsonify({"success": False, "error": "API 响应中没有 choices 数据"}), 500
+        if response.choices[0].message is None:
+            return jsonify({"success": False, "error": "API 响应中没有 message 数据"}), 500
+        
+        challenged_answer = response.choices[0].message.content or ''
+        
+        return jsonify({
+            "success": True,
+            "model": model,
+            "challenge_prompt": challenge_prompt,
+            "challenged_answer": challenged_answer,
+            "response_time": response_time
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

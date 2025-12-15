@@ -159,6 +159,24 @@ const Components = {
                     ` : ''}
                 </div>
             ` : ''}
+            ${result.challenge_result ? `
+                <div class="self-correct-info" style="margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(147, 51, 234, 0.1), rgba(79, 70, 229, 0.1)); border: 1px solid rgba(147, 51, 234, 0.3); border-radius: 8px;">
+                    <h4 style="color: #a855f7;">🔄 自我纠正能力测试结果（需人工评估）</h4>
+                    <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                        模型被质疑后的回答变化，请根据以下对话评估自我纠正能力
+                    </div>
+                    <div style="margin-top: 0.5rem;">
+                        <div style="margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(255, 193, 7, 0.1); border-radius: 4px; border-left: 3px solid #ffc107;">
+                            <strong style="color: #ffc107;">⚠️ 质疑提示</strong>
+                            <p style="margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-secondary);">${result.challenge_result.challenge_prompt}</p>
+                        </div>
+                        <div style="padding: 0.75rem; background: var(--bg-secondary); border-radius: 4px; border-left: 3px solid #a855f7;">
+                            <strong style="color: #a855f7;">🔄 纠正后回答</strong> (${result.challenge_result.response_time}s)
+                            <pre style="margin-top: 0.5rem; font-size: 0.85rem;">${result.challenge_result.challenged_answer}</pre>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
             <div class="eval-controls">
                 ${isSecurity ? `
                     <button class="eval-btn" data-status="pass">✅ 通过</button>
@@ -179,6 +197,9 @@ const Components = {
                 ` : ''}
                 ${result.dimension === 'hallucination' ? `
                     <button class="eval-btn btn-secondary" onclick="Components.showEvaluationForm('${evalCaseId}', 'hallucination')">📋 详细评估</button>
+                    ${!result.challenge_result ? `
+                        <button class="eval-btn btn-challenge" data-challenge="true" style="background: linear-gradient(135deg, #a855f7, #6366f1); color: white;" title="质疑模型回答，测试自我纠正能力">🔄 质疑测试</button>
+                    ` : ''}
                 ` : ''}
                 <button class="eval-btn btn-retry" data-retry="true" title="重新运行此测试">🔄 重试</button>
             </div>
@@ -269,6 +290,16 @@ const Components = {
             };
         }
         
+        // 绑定质疑测试按钮事件（幻觉测试专用）
+        const challengeBtn = card.querySelector('.btn-challenge[data-challenge]');
+        if (challengeBtn) {
+            challengeBtn.onclick = async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                await this.runChallengeTest(result, card);
+            };
+        }
+        
         return card;
     },
     
@@ -355,6 +386,87 @@ const Components = {
                 retryBtn.innerHTML = '🔄 重试';
             }
             card.classList.remove('retrying');
+        }
+    },
+    
+    // 质疑测试（幻觉测试的自我纠正能力测试）
+    async runChallengeTest(originalResult, card) {
+        const config = API.getConfig();
+        if (!config.api_key) {
+            this.toast('请先配置 API Key', 'error');
+            return;
+        }
+        
+        // 获取质疑按钮并禁用
+        const challengeBtn = card.querySelector('.btn-challenge');
+        if (challengeBtn) {
+            challengeBtn.disabled = true;
+            challengeBtn.innerHTML = '⏳ 质疑中...';
+        }
+        
+        try {
+            const model = App.getSelectedModel();
+            const prompts = App.getPrompts();
+            
+            // 调用质疑 API
+            const response = await fetch('/api/challenge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model,
+                    base_url: config.base_url,
+                    api_key: config.api_key,
+                    lang: originalResult.test_lang || 'zh',
+                    original_question: originalResult.question,
+                    original_answer: originalResult.answer,
+                    sys_prompt: prompts.sys_prompt
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // 将质疑结果添加到原结果中
+                originalResult.challenge_result = {
+                    challenge_prompt: result.challenge_prompt,
+                    challenged_answer: result.challenged_answer,
+                    response_time: result.response_time
+                };
+                
+                // 更新 App.state.testResults 中的对应结果
+                const resultIndex = App.state.testResults.findIndex(r => {
+                    const rKey = r.test_lang ? `${r.case_id}-${r.test_lang}` : r.case_id;
+                    const origKey = originalResult.test_lang ? `${originalResult.case_id}-${originalResult.test_lang}` : originalResult.case_id;
+                    return rKey === origKey;
+                });
+                
+                if (resultIndex !== -1) {
+                    App.state.testResults[resultIndex] = originalResult;
+                }
+                
+                // 保存到 localStorage
+                App.saveTestResults();
+                
+                // 更新卡片内容
+                const newCard = this.createResultCard(originalResult);
+                card.replaceWith(newCard);
+                
+                this.toast('✅ 质疑测试完成！请评估自我纠正能力', 'success');
+            } else {
+                this.toast(`❌ 质疑测试失败: ${result.error}`, 'error');
+                // 恢复按钮状态
+                if (challengeBtn) {
+                    challengeBtn.disabled = false;
+                    challengeBtn.innerHTML = '🔄 质疑测试';
+                }
+            }
+        } catch (error) {
+            this.toast(`❌ 质疑测试失败: ${error.message}`, 'error');
+            // 恢复按钮状态
+            if (challengeBtn) {
+                challengeBtn.disabled = false;
+                challengeBtn.innerHTML = '🔄 质疑测试';
+            }
         }
     },
     
