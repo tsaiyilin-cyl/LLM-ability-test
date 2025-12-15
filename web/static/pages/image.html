@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片分类测试 - LLM 能力测试平台</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🖼️ 图片分类测试</h1>
+            <p>测试模型的视觉理解与分类能力</p>
+            <a href="/static/index.html" class="back-link">← 返回首页</a>
+        </header>
+
+        <!-- API 配置 -->
+        <section class="card">
+            <div class="collapsible-header" onclick="toggleSection('configBody')">
+                <h3>⚙️ API 配置</h3>
+                <span class="toggle-icon" id="configIcon">▼</span>
+            </div>
+            <div class="collapsible-body" id="configBody">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label>API Base URL</label>
+                        <input type="text" id="apiBaseUrl" placeholder="https://api.openai.com">
+                    </div>
+                    <div class="form-field">
+                        <label>API Key</label>
+                        <div class="input-with-toggle">
+                            <input type="password" id="apiKey" placeholder="sk-xxxxxxxx">
+                            <button class="toggle-visibility" onclick="toggleKeyVisibility()">👁️</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="btn-group mt-2">
+                    <button class="btn btn-primary btn-sm" onclick="App.saveApiConfig()">💾 保存</button>
+                    <button class="btn btn-secondary btn-sm" onclick="App.testConnection()">🔗 测试连接</button>
+                    <button class="btn btn-secondary btn-sm" id="fetchModelsBtn" onclick="App.fetchModelsFromAPI()">🔄 获取模型列表</button>
+                </div>
+                <div class="status info mt-1" id="apiStatus">⚪ 点击测试连接</div>
+            </div>
+        </section>
+
+        <!-- 控制面板 -->
+        <div class="form-grid">
+            <div class="card">
+                <div class="collapsible-header" onclick="toggleSection('modelBody')">
+                    <div>
+                        <h3>🤖 选择模型</h3>
+                        <span class="model-display" id="modelDisplay">未选择</span>
+                    </div>
+                    <span class="toggle-icon open" id="modelIcon">▼</span>
+                </div>
+                <div class="collapsible-body open" id="modelBody">
+                    <div class="model-selector">
+                        <input type="text" id="modelSearchInput" class="model-search-input" placeholder="🔍 搜索模型...">
+                        <select id="modelSelect" size="8" class="model-select">
+                            <!-- 模型列表将通过 JavaScript 动态加载 -->
+                        </select>
+                        <span class="hint">
+                            请在 API 配置中点击"获取模型列表"按钮获取模型，然后在搜索框中输入关键词快速查找
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="mb-1">测试语言</h3>
+                <select id="langSelect">
+                    <option value="zh">中文</option>
+                    <option value="en">English</option>
+                    <option value="all">🌐 中英全选</option>
+                </select>
+            </div>
+
+            <div class="card">
+                <h3 class="mb-1">执行测试</h3>
+                <button class="btn btn-primary btn-block" id="runTestBtn" onclick="App.runTests()">
+                    🚀 运行选中测试
+                </button>
+                <div class="checkbox-wrapper mt-1">
+                    <input type="checkbox" id="selectAll" onchange="App.toggleSelectAll()">
+                    <label for="selectAll" style="color: var(--text-secondary); font-size: 0.875rem;">全选所有用例</label>
+                </div>
+                <div class="checkbox-wrapper mt-1">
+                    <input type="checkbox" id="consistencyTest" checked>
+                    <label for="consistencyTest" style="color: var(--text-secondary); font-size: 0.875rem;">
+                        🔄 启用推理一致性测试
+                    </label>
+                </div>
+                <div class="form-field mt-1" id="repeatTimesField" style="display: none;">
+                    <label style="font-size: 0.875rem; color: var(--text-secondary);">重复询问次数</label>
+                    <input type="number" id="repeatTimes" min="2" max="10" value="5" 
+                           style="width: 100px; padding: 0.25rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 0.5rem;">次（2-10）</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 提示词配置 -->
+        <section class="card">
+            <div class="collapsible-header" onclick="toggleSection('promptBody')">
+                <h3>📝 提示词配置</h3>
+                <span class="toggle-icon" id="promptIcon">▼</span>
+            </div>
+            <div class="collapsible-body open" id="promptBody">
+                <div class="form-grid">
+                    <div class="form-field">
+                        <label>System Prompt <span style="font-size: 0.7rem; color: var(--accent-primary);">(系统提示词)</span></label>
+                        <textarea id="sysPrompt" placeholder="输入系统提示词..."></textarea>
+                        <span class="hint">定义 AI 助手的角色和行为</span>
+                    </div>
+                    <div class="form-field">
+                        <label>User Prompt <span style="font-size: 0.7rem; color: var(--accent-primary);">(用户提示词模板)</span></label>
+                        <textarea id="userPrompt" placeholder="输入用户提示词模板..."></textarea>
+                        <span class="hint">使用 <code>{question}</code> 作为图片名称占位符</span>
+                    </div>
+                </div>
+                <div class="btn-group mt-2">
+                    <button class="btn btn-secondary btn-sm" onclick="App.resetPrompts()">🔄 重置为默认</button>
+                    <button class="btn btn-secondary btn-sm" onclick="App.savePrompts()">💾 保存提示词</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 图片上传（保留单图测试功能） -->
+        <section class="card">
+            <h3 class="mb-1">📤 上传测试图片（单图测试）</h3>
+            <div class="image-upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
+                <input type="file" id="imageInput" accept="image/*" class="hidden-input" onchange="handleImageUpload(event)">
+                <p class="upload-text">点击或拖拽图片到此处上传</p>
+                <p class="upload-text-small">支持 JPG, PNG, GIF, WebP</p>
+            </div>
+            <img id="imagePreview" class="image-preview hidden">
+            <div class="btn-group mt-2">
+                <button class="btn btn-primary" id="classifyBtn" onclick="classifyImage()" disabled>🔍 开始分类</button>
+                <button class="btn btn-secondary" onclick="clearImage()">🗑️ 清除图片</button>
+            </div>
+        </section>
+
+        <!-- 预设测试图片 -->
+        <section class="card">
+            <div class="card-header">
+                <h3 class="mb-0">🖼️ 预设测试图片</h3>
+                <button class="btn btn-secondary btn-sm" onclick="App.clearAllData()">🗑️ 清除历史数据</button>
+            </div>
+            <p class="preset-hint">勾选图片进行批量测试，或点击图片进行单图测试</p>
+            <div class="test-grid" id="testCasesGrid">
+                <!-- 图片列表将在这里加载 -->
+            </div>
+        </section>
+
+        <!-- 测试结果 -->
+        <section class="card hidden" id="resultsSection">
+            <div class="card-header">
+                <h3>📊 测试结果</h3>
+                <div class="btn-group">
+                    <button class="btn btn-primary btn-sm" onclick="Components.generateEvaluationReport()">📋 生成评估报告</button>
+                    <button class="btn btn-secondary btn-sm" onclick="App.clearResults()">清空结果</button>
+                </div>
+            </div>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalTests">0</div>
+                    <div class="stat-label">总测试数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="passedCount">0</div>
+                    <div class="stat-label">成功测试</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="avgTime">0s</div>
+                    <div class="stat-label">平均响应</div>
+                </div>
+            </div>
+            <div id="resultsContainer"></div>
+        </section>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/components.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script>
+        // 折叠面板
+        // 折叠面板
+        function toggleSection(id) {
+            const body = document.getElementById(id);
+            const iconId = id.replace('Body', 'Icon');
+            const icon = document.getElementById(iconId);
+            body.classList.toggle('open');
+            if (icon) icon.classList.toggle('open');
+        }
+
+        // 密码可见性
+        function toggleKeyVisibility() {
+            const input = document.getElementById('apiKey');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        // 图片上传相关函数（保留单图测试功能）
+        let currentImage = null;
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImage = e.target.result;
+                    document.getElementById('imagePreview').src = currentImage;
+                    document.getElementById('imagePreview').classList.remove('hidden');
+                    document.getElementById('classifyBtn').disabled = false;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // 拖拽上传
+        const uploadZone = document.getElementById('uploadZone');
+        if (uploadZone) {
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        currentImage = ev.target.result;
+                        document.getElementById('imagePreview').src = currentImage;
+                        document.getElementById('imagePreview').classList.remove('hidden');
+                        document.getElementById('classifyBtn').disabled = true;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        function clearImage() {
+            currentImage = null;
+            document.getElementById('imagePreview').classList.add('hidden');
+            document.getElementById('imageInput').value = '';
+            document.getElementById('classifyBtn').disabled = true;
+        }
+
+        async function classifyImage() {
+            if (!currentImage) return;
+            
+            const btn = document.getElementById('classifyBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ 分类中...';
+            
+            const resultsSection = document.getElementById('resultsSection');
+            resultsSection.classList.remove('hidden');
+            const container = document.getElementById('resultsContainer');
+            
+            const lang = document.getElementById('langSelect')?.value || 'zh';
+            const loading = Components.createLoading('classify', lang === 'zh' ? '正在分析图片...' : 'Analyzing image...');
+            container.insertBefore(loading, container.firstChild);
+            
+            try {
+                const prompts = {
+                    sys_prompt: document.getElementById('sysPrompt')?.value || '',
+                    user_prompt: document.getElementById('userPrompt')?.value || ''
+                };
+                const model = App.getSelectedModel();
+                
+                const result = await API.classifyImage(currentImage, model, prompts);
+                
+                document.getElementById('loading-classify')?.remove();
+                
+                if (result.success) {
+                    const card = document.createElement('div');
+                    card.className = 'result-card';
+                    card.innerHTML = `
+                        <div class="result-meta">
+                            <span>🤖 ${result.model}</span>
+                            <span class="badge">${lang === 'zh' ? '中文' : 'English'}</span>
+                            <span class="time">⏱️ ${result.response_time}s</span>
+                        </div>
+                        <div class="mb-2">
+                            <img src="${currentImage}" class="result-image">
+                        </div>
+                        <div class="result-answer">
+                            <h4>${lang === 'zh' ? '分类结果' : 'Classification Result'}</h4>
+                            <pre>${result.answer}</pre>
+                        </div>
+                    `;
+                    container.insertBefore(card, container.firstChild);
+                } else {
+                    const errorCard = Components.createErrorCard('classify', result.error);
+                    container.insertBefore(errorCard, container.firstChild);
+                }
+            } catch (e) {
+                document.getElementById('loading-classify')?.remove();
+                const errorCard = Components.createErrorCard('classify', e.message);
+                container.insertBefore(errorCard, container.firstChild);
+            }
+            
+            btn.disabled = false;
+            btn.textContent = '🔍 开始分类';
+        }
+
+        // 扩展 App 模块以支持图片分类的特殊渲染
+        const originalRenderTestCases = App.renderTestCases;
+        App.renderTestCases = function() {
+            const grid = document.getElementById('testCasesGrid');
+            if (!grid) return;
+            
+            grid.innerHTML = '';
+            
+            // 如果是图片分类，使用特殊的渲染方式
+            if (this.state.currentDimension === 'image') {
+                this.renderImageTestCases();
+            } else {
+                // 其他维度使用原有方式
+                originalRenderTestCases.call(this);
+            }
+        };
+
+        // 渲染图片测试用例
+        App.renderImageTestCases = async function() {
+            const grid = document.getElementById('testCasesGrid');
+            if (!grid) return;
+            
+            grid.innerHTML = '<p class="text-muted">正在加载预设图片...</p>';
+            
+            try {
+                const lang = document.getElementById('langSelect')?.value || 'zh';
+                const loadLang = lang === 'all' ? 'zh' : lang;
+                const response = await fetch(`/api/preset-images?lang=${loadLang}`);
+                const result = await response.json();
+                
+                if (result.success && result.images && result.images.length > 0) {
+                    grid.innerHTML = '';
+                    
+                    // 将图片数据转换为测试用例格式
+                    const imageCases = {};
+                    result.images.forEach(img => {
+                        imageCases[img.id] = {
+                            name: img.name,
+                            category: img.category,
+                            level: img.level,
+                            type: img.type,
+                            filename: img.url.split('/').pop(),
+                            url: img.url
+                        };
+                    });
+                    
+                    // 更新 testCases
+                    this.state.testCases = imageCases;
+                    
+                    // 渲染图片卡片
+                    result.images.forEach(img => {
+                        const isSelected = this.state.selectedCases.has(img.id);
+                        const card = Components.createImageTestCard(
+                            img.id,
+                            img,
+                            isSelected,
+                            () => this.toggleCase(img.id)
+                        );
+                        grid.appendChild(card);
+                    });
+                } else {
+                    grid.innerHTML = '<p class="text-muted">暂无预设图片</p>';
+                }
+            } catch (error) {
+                console.error('加载预设图片失败:', error);
+                grid.innerHTML = '<p class="text-muted">加载失败，请刷新页面重试</p>';
+            }
+        };
+
+        // 控制一致性测试重复次数输入框的显示
+        function initConsistencyTestControl() {
+            const consistencyCheckbox = document.getElementById('consistencyTest');
+            const repeatTimesField = document.getElementById('repeatTimesField');
+            
+            if (consistencyCheckbox && repeatTimesField) {
+                // 初始化显示状态
+                repeatTimesField.style.display = consistencyCheckbox.checked ? 'block' : 'none';
+                
+                // 监听复选框变化
+                consistencyCheckbox.addEventListener('change', function() {
+                    repeatTimesField.style.display = this.checked ? 'block' : 'none';
+                });
+            }
+        }
+        
+        // 初始化
+        App.init('image');
+        
+        // 初始化一致性测试控制
+        document.addEventListener('DOMContentLoaded', initConsistencyTestControl);
+        // 如果DOM已经加载完成，立即执行
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initConsistencyTestControl);
+        } else {
+            initConsistencyTestControl();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+flask==3.0.0
+flask-cors==4.0.0
+openai==1.6.1
+python-dotenv==1.0.0  # 用于环境变量管理（当前未启用，可在 app.py 中使用 load_dotenv() 启用）
+requests==2.31.0  # 用于调用 API 获取模型列表

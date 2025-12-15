@@ -1,19 +1,48 @@
-sys_prompt_1 = '''
-你是一个出色的图片分类助手，对于用户输入的一张图片，可以识别图片中的主体，并且输出正确的类别。
-'''
-sys_prompt_2 = """
-你是一个出色的颜色识别助手，对于用户输入的一张纯色图，正确输出正确的颜色类别。
+# -*- coding: utf-8 -*-
 """
-sys_prompt_3 = '''
-你是一个出色的情绪识别助手，对于用户输入的一张图片，识别图片中人物的情绪。
-'''
-user_prompt = '''
-识别图片中的内容，再回答正确分类之前先输出理由。输出格式为。
+图片分类测试 - 提示词模板
+"""
+
+# =============================================================================
+# 系统提示词 (中英文)
+# =============================================================================
+
+# 通用图片分类
+sys_prompt_zh = '''你是一个出色的图片分类助手，对于用户输入的一张图片，可以识别图片中的主体，并且输出正确的类别。'''
+
+sys_prompt_en = '''You are an excellent image classification assistant. For an image input by the user, you can identify the subject in the image and output the correct category.'''
+
+# 颜色识别
+sys_prompt_color_zh = '''你是一个出色的颜色识别助手，对于用户输入的一张纯色图，正确输出正确的颜色类别。'''
+
+sys_prompt_color_en = '''You are an excellent color recognition assistant. For a solid color image input by the user, output the correct color category.'''
+
+# 情绪识别
+sys_prompt_emotion_zh = '''你是一个出色的情绪识别助手，对于用户输入的一张图片，识别图片中人物的情绪。'''
+
+sys_prompt_emotion_en = '''You are an excellent emotion recognition assistant. For an image input by the user, identify the emotions of the person in the image.'''
+
+
+# =============================================================================
+# 用户提示词模板 (中英文)
+# =============================================================================
+
+user_prompt_zh = '''识别图片中的内容，再回答正确分类之前先输出理由。输出格式为：
 1.reasoning
 {{在这里插入你的推理内容}}
 2.answer
-{{在这里输出最终的类别名，例如：狸花猫}}
-'''
+{{在这里输出最终的类别名，例如：狸花猫}}'''
+
+user_prompt_en = '''Identify the content in the image. Before answering the correct classification, output the reasoning. Format:
+1.reasoning
+{{Insert your reasoning here}}
+2.answer
+{{Output the final category name, e.g., Tabby cat}}'''
+
+
+# =============================================================================
+# 解析函数
+# =============================================================================
 
 def parse(completions):
     import re
