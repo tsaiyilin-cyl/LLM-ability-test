@@ -795,6 +795,13 @@ def run_test():
                             print(f"[重试 {attempt + 1}/{max_retries}] 空 message，{delay}秒后重试...")
                             time.sleep(delay)
                             continue
+                    elif not response.choices[0].message.content or response.choices[0].message.content.strip() == '':
+                        last_error = "API 返回了空内容"
+                        if attempt < max_retries - 1:
+                            delay = retry_delay * (attempt + 1)
+                            print(f"[重试 {attempt + 1}/{max_retries}] 空内容，{delay}秒后重试...")
+                            time.sleep(delay)
+                            continue
                     else:
                         # 响应有效，跳出重试循环
                         if attempt > 0:
@@ -815,10 +822,12 @@ def run_test():
                 return jsonify({"success": False, "error": f"重试 {max_retries} 次后仍失败: {last_error}"}), 500
             if response.choices[0].message is None:
                 return jsonify({"success": False, "error": f"重试 {max_retries} 次后仍失败: {last_error}"}), 500
+            if not response.choices[0].message.content or response.choices[0].message.content.strip() == '':
+                return jsonify({"success": False, "error": f"重试 {max_retries} 次后仍失败: {last_error or 'API 返回了空内容'}"}), 500
             
             end_time = time.time()
             response_time = round(end_time - start_time, 2)
-            answer = response.choices[0].message.content or ''
+            answer = response.choices[0].message.content
             
             result = {
                 "success": True,
