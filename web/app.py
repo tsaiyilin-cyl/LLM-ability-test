@@ -763,20 +763,61 @@ def run_test():
                 "response_times": response_times  # 每次的响应时间
             }
         else:
-            # 单次询问（原有逻辑）
-            response = client.chat.completions.create(**request_params)
+            # 单次询问（带重试机制）
+            max_retries = 5  # 增加重试次数
+            retry_delay = 2  # 初始延迟秒数
+            last_error = None
+            response = None
+            
+            for attempt in range(max_retries):
+                try:
+                    response = client.chat.completions.create(**request_params)
+                    
+                    # 检查响应是否有效
+                    if response is None:
+                        last_error = "API 返回了空响应"
+                        if attempt < max_retries - 1:
+                            delay = retry_delay * (attempt + 1)
+                            print(f"[重试 {attempt + 1}/{max_retries}] 空响应，{delay}秒后重试...")
+                            time.sleep(delay)
+                            continue
+                    elif not hasattr(response, 'choices') or response.choices is None or len(response.choices) == 0:
+                        last_error = f"API 返回空 choices（第 {attempt + 1} 次尝试）"
+                        if attempt < max_retries - 1:
+                            delay = retry_delay * (attempt + 1)
+                            print(f"[重试 {attempt + 1}/{max_retries}] 空 choices，{delay}秒后重试...")
+                            time.sleep(delay)
+                            continue
+                    elif response.choices[0].message is None:
+                        last_error = "API 响应中没有 message 数据"
+                        if attempt < max_retries - 1:
+                            delay = retry_delay * (attempt + 1)
+                            print(f"[重试 {attempt + 1}/{max_retries}] 空 message，{delay}秒后重试...")
+                            time.sleep(delay)
+                            continue
+                    else:
+                        # 响应有效，跳出重试循环
+                        if attempt > 0:
+                            print(f"[成功] 第 {attempt + 1} 次尝试成功")
+                        break
+                except Exception as e:
+                    last_error = str(e)
+                    if attempt < max_retries - 1:
+                        delay = retry_delay * (attempt + 1)
+                        print(f"[重试 {attempt + 1}/{max_retries}] 异常: {last_error}，{delay}秒后重试...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        return jsonify({"success": False, "error": f"重试 {max_retries} 次后仍失败: {last_error}"}), 500
+            
+            # 最终检查
+            if response is None or not hasattr(response, 'choices') or response.choices is None or len(response.choices) == 0:
+                return jsonify({"success": False, "error": f"重试 {max_retries} 次后仍失败: {last_error}"}), 500
+            if response.choices[0].message is None:
+                return jsonify({"success": False, "error": f"重试 {max_retries} 次后仍失败: {last_error}"}), 500
             
             end_time = time.time()
             response_time = round(end_time - start_time, 2)
-            
-            # 安全地获取响应内容
-            if response is None:
-                return jsonify({"success": False, "error": "API 返回了空响应"}), 500
-            if not hasattr(response, 'choices') or response.choices is None or len(response.choices) == 0:
-                return jsonify({"success": False, "error": "API 响应中没有 choices 数据"}), 500
-            if response.choices[0].message is None:
-                return jsonify({"success": False, "error": "API 响应中没有 message 数据"}), 500
-            
             answer = response.choices[0].message.content or ''
             
             result = {
