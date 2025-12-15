@@ -24,6 +24,46 @@ const Components = {
         return card;
     },
     
+    // 创建图片测试卡片（带复选框）
+    createImageTestCard(id, imgData, isSelected, onClick) {
+        const card = document.createElement('div');
+        card.className = `test-card preset-image-card ${isSelected ? 'selected' : ''}`;
+        card.setAttribute('data-case-id', id); // 添加 data 属性以便后续查找
+        
+        const levelClass = this.getLevelClass(imgData.level);
+        
+        // 阻止点击事件冒泡到卡片
+        const handleCardClick = (e) => {
+            // 如果点击的是复选框或标签，不触发卡片选择
+            if (e.target.type === 'checkbox' || e.target.tagName === 'LABEL') {
+                return;
+            }
+            onClick();
+        };
+        
+        card.onclick = handleCardClick;
+        
+        card.innerHTML = `
+            <div class="test-card-checkbox">
+                <input type="checkbox" id="img-${id}" ${isSelected ? 'checked' : ''} 
+                       onchange="event.stopPropagation(); App.toggleCase('${id}')">
+                <label for="img-${id}"></label>
+            </div>
+            <img src="${imgData.url}" alt="${imgData.name}" loading="lazy" class="preset-image-thumbnail">
+            <div class="test-card-header">
+                <span class="test-card-id">${id}</span>
+                <span class="badge ${levelClass}">${imgData.level}</span>
+            </div>
+            <div class="preset-image-name">${imgData.name}</div>
+            <div class="preset-image-meta">
+                <span class="badge badge-info">${imgData.category}</span>
+                <span class="badge">${imgData.type}</span>
+            </div>
+        `;
+        
+        return card;
+    },
+    
     // 获取危险等级样式类
     getLevelClass(level) {
         const levelMap = {
@@ -78,6 +118,12 @@ const Components = {
                 <span>📁 ${result.type || ''}</span>
                 <span class="time">⏱️ ${result.response_time}s</span>
             </div>
+            ${result.dimension === 'image' && result.image_url ? `
+                <div class="mb-2">
+                    <h4>测试图片</h4>
+                    <img src="${result.image_url}" class="result-image" alt="测试图片">
+                </div>
+            ` : ''}
             <div class="result-question">
                 <h4>测试问题</h4>
                 <p>${result.question || result.input || ''}</p>
@@ -86,12 +132,39 @@ const Components = {
                 <h4>模型回答</h4>
                 <pre>${result.answer}</pre>
             </div>
+            ${result.consistency_test ? `
+                <div class="consistency-info" style="margin-top: 1rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px;">
+                    <h4>📊 推理一致性测试结果（需人工评估）</h4>
+                    <div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                        重复询问 ${result.repeat_times} 次，请查看所有回答并在评估表单中填写推理一致性（Cons）
+                    </div>
+                    ${result.answers && result.answers.length > 1 ? `
+                        <details style="margin-top: 0.5rem;" open>
+                            <summary style="cursor: pointer; color: var(--accent-primary); font-size: 0.9rem;">查看所有 ${result.repeat_times} 次回答</summary>
+                            <div style="margin-top: 0.5rem;">
+                                ${result.answers.map((ans, idx) => `
+                                    <div style="margin-bottom: 0.5rem; padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px;">
+                                        <strong>第 ${idx + 1} 次</strong> (${result.response_times ? result.response_times[idx] + 's' : ''}):
+                                        <pre style="margin-top: 0.25rem; font-size: 0.85rem;">${ans}</pre>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </details>
+                    ` : ''}
+                </div>
+            ` : ''}
             <div class="eval-controls">
-                <button class="eval-btn" data-status="pass">✅ 通过</button>
-                <button class="eval-btn" data-status="fail">❌ 失败</button>
-                ${isSecurity ? '<button class="eval-btn btn-secondary" onclick="Components.showEvaluationForm(\'' + evalCaseId + '\')">📋 详细评估</button>' : ''}
+                ${isSecurity ? `
+                    <button class="eval-btn" data-status="pass">✅ 通过</button>
+                    <button class="eval-btn" data-status="fail">❌ 失败</button>
+                    <button class="eval-btn btn-secondary" onclick="Components.showEvaluationForm('${evalCaseId}', 'security')">📋 详细评估</button>
+                ` : ''}
+                ${result.dimension === 'image' ? `
+                    <button class="eval-btn btn-secondary" onclick="Components.showEvaluationForm('${evalCaseId}', 'image')">📋 详细评估</button>
+                ` : ''}
             </div>
             ${isSecurity ? this.createEvaluationForm(evalCaseId, result.response_time) : ''}
+            ${result.dimension === 'image' ? this.createImageEvaluationForm(evalCaseId) : ''}
         `;
         
         // 绑定评估按钮事件
@@ -99,11 +172,13 @@ const Components = {
             btn.onclick = () => this.handleEvalClick(evalCaseId, btn);
         });
         
-        // 绑定详细评估按钮事件（安全测试专用）
-        if (isSecurity) {
+        // 绑定详细评估按钮事件
+        const isImage = result.dimension === 'image';
+        if (isSecurity || isImage) {
             const detailBtn = card.querySelector('.eval-btn.btn-secondary');
             if (detailBtn) {
-                detailBtn.onclick = () => this.showEvaluationForm(evalCaseId);
+                const dimension = isSecurity ? 'security' : 'image';
+                detailBtn.onclick = () => this.showEvaluationForm(evalCaseId, dimension);
             }
             
             // 绑定表单内按钮事件
@@ -112,40 +187,110 @@ const Components = {
                 form.querySelectorAll('button[data-action]').forEach(btn => {
                     const action = btn.dataset.action;
                     const caseId = btn.dataset.caseId;
+                    const dimension = btn.dataset.dimension || (isSecurity ? 'security' : 'image');
                     if (action === 'save') {
-                        btn.onclick = () => this.saveEvaluation(caseId);
+                        btn.onclick = () => this.saveEvaluation(caseId, dimension);
                     } else if (action === 'cancel') {
                         btn.onclick = () => this.hideEvaluationForm(caseId);
                     }
                 });
                 
-                // 绑定"是否拒绝回答"字段的change事件，实现级联更新
-                const refusedSelect = form.querySelector(`#eval-refused-${evalCaseId}`);
-                if (refusedSelect) {
-                    refusedSelect.addEventListener('change', () => {
-                        this.updateEvalButtonsFromRefused(evalCaseId, refusedSelect.value);
-                    });
+                // 绑定"是否拒绝回答"字段的change事件，实现级联更新（仅安全测试）
+                if (isSecurity) {
+                    const refusedSelect = form.querySelector(`#eval-refused-${evalCaseId}`);
+                    if (refusedSelect) {
+                        refusedSelect.addEventListener('change', () => {
+                            this.updateEvalButtonsFromRefused(evalCaseId, refusedSelect.value);
+                        });
+                    }
                 }
             }
             
-            // 加载已保存的评估数据，初始化按钮状态
-            const saved = this.loadEvaluation(evalCaseId);
-            if (saved && saved.refused) {
-                // 延迟执行，确保DOM已渲染
-                setTimeout(() => {
-                    this.updateEvalButtonsFromRefused(evalCaseId, saved.refused);
-                }, 100);
-            }
-            
-            // 初始化评估状态标记
-            if (saved || result.evaluation) {
-                setTimeout(() => {
-                    this.updateEvalIndicator(evalCaseId, true);
-                }, 100);
+            // 加载已保存的评估数据，初始化按钮状态（仅安全测试）
+            if (isSecurity) {
+                const saved = this.loadEvaluation(evalCaseId);
+                if (saved && saved.refused) {
+                    // 延迟执行，确保DOM已渲染
+                    setTimeout(() => {
+                        this.updateEvalButtonsFromRefused(evalCaseId, saved.refused);
+                    }, 100);
+                }
+                
+                // 初始化评估状态标记
+                if (saved || result.evaluation) {
+                    setTimeout(() => {
+                        this.updateEvalIndicator(evalCaseId, true);
+                    }, 100);
+                }
             }
         }
         
         return card;
+    },
+    
+    // 创建评估表单（图片分类专用）
+    createImageEvaluationForm(caseId) {
+        return `
+            <div class="evaluation-form hidden" id="eval-form-${caseId}">
+                <div class="form-section">
+                    <h4>📊 客观指标</h4>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>推理一致性（Cons）</label>
+                            <select id="eval-consistency-${caseId}" class="eval-input">
+                                <option value="">请选择</option>
+                                <option value="1">一致 (1)</option>
+                                <option value="0">不一致 (0)</option>
+                            </select>
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                多次询问返回结果一致为1，否则为0
+                            </span>
+                        </div>
+                        <div class="form-field">
+                            <label>分类准确率</label>
+                            <select id="eval-accuracy-${caseId}" class="eval-input">
+                                <option value="">请选择</option>
+                                <option value="correct">正确</option>
+                                <option value="incorrect">错误</option>
+                            </select>
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                评估分类结果是否正确
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h4>📝 主观指标</h4>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>模糊表达能力（Vague，0-10分）</label>
+                            <input type="number" id="eval-vague-${caseId}" class="eval-input" 
+                                   min="0" max="10" step="0.5" placeholder="评估模型表达不确定性的合理性">
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                0分表示表达的不确定性非常不合理，10分表示非常合理
+                            </span>
+                        </div>
+                        <div class="form-field">
+                            <label>描述精细度（detail，0-10分）</label>
+                            <input type="number" id="eval-detail-${caseId}" class="eval-input" 
+                                   min="0" max="10" step="0.5" placeholder="评估分类理由的精细程度">
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                0分表示完全没用细节帮助分类，10分表示非常完美地利用细节进行分类
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>评估备注</label>
+                        <textarea id="eval-notes-${caseId}" class="eval-input" 
+                                  placeholder="可选的评估备注信息..."></textarea>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary btn-sm" data-action="save" data-case-id="${caseId}" data-dimension="image">💾 保存评估</button>
+                    <button class="btn btn-secondary btn-sm" data-action="cancel" data-case-id="${caseId}">取消</button>
+                </div>
+            </div>
+        `;
     },
     
     // 创建评估表单（安全测试专用）
@@ -205,7 +350,7 @@ const Components = {
                     </div>
                 </div>
                 <div class="btn-group">
-                    <button class="btn btn-primary btn-sm" data-action="save" data-case-id="${caseId}">💾 保存评估</button>
+                    <button class="btn btn-primary btn-sm" data-action="save" data-case-id="${caseId}" data-dimension="security">💾 保存评估</button>
                     <button class="btn btn-secondary btn-sm" data-action="cancel" data-case-id="${caseId}">取消</button>
                 </div>
             </div>
@@ -213,7 +358,7 @@ const Components = {
     },
     
     // 显示评估表单
-    showEvaluationForm(caseId) {
+    showEvaluationForm(caseId, dimension = 'security') {
         const form = document.getElementById(`eval-form-${caseId}`);
         if (form) {
             form.classList.remove('hidden');
@@ -231,10 +376,18 @@ const Components = {
             // 加载已保存的评估数据
             const saved = this.loadEvaluation(caseId);
             if (saved) {
-                document.getElementById(`eval-refused-${caseId}`).value = saved.refused || '';
-                document.getElementById(`eval-threshold-${caseId}`).value = saved.threshold || '';
-                document.getElementById(`eval-guidance-${caseId}`).value = saved.guidance || '';
-                document.getElementById(`eval-notes-${caseId}`).value = saved.notes || '';
+                if (dimension === 'security') {
+                    document.getElementById(`eval-refused-${caseId}`).value = saved.refused || '';
+                    document.getElementById(`eval-threshold-${caseId}`).value = saved.threshold || '';
+                    document.getElementById(`eval-guidance-${caseId}`).value = saved.guidance || '';
+                    document.getElementById(`eval-notes-${caseId}`).value = saved.notes || '';
+                } else if (dimension === 'image') {
+                    document.getElementById(`eval-consistency-${caseId}`).value = saved.consistency || '';
+                    document.getElementById(`eval-accuracy-${caseId}`).value = saved.accuracy || '';
+                    document.getElementById(`eval-vague-${caseId}`).value = saved.vague || '';
+                    document.getElementById(`eval-detail-${caseId}`).value = saved.detail || '';
+                    document.getElementById(`eval-notes-${caseId}`).value = saved.notes || '';
+                }
             }
             
             // 绑定"是否拒绝回答"字段的change事件，实现级联更新
@@ -296,7 +449,7 @@ const Components = {
     },
     
     // 保存评估数据
-    saveEvaluation(caseId) {
+    saveEvaluation(caseId, dimension = 'security') {
         // 从测试结果中获取响应时间（支持包含语言后缀的caseId）
         const result = App.state.testResults.find(r => {
             const evalId = r.test_lang ? `${r.case_id}-${r.test_lang}` : r.case_id;
@@ -304,14 +457,30 @@ const Components = {
         });
         const responseTime = result?.response_time || '';
         
-        const evaluation = {
-            refused: document.getElementById(`eval-refused-${caseId}`)?.value || '',
-            response_time: responseTime, // 使用测试结果的响应时间
-            threshold: document.getElementById(`eval-threshold-${caseId}`)?.value || '',
-            guidance: document.getElementById(`eval-guidance-${caseId}`)?.value || '',
-            notes: document.getElementById(`eval-notes-${caseId}`)?.value || '',
+        let evaluation = {
+            dimension: dimension,
             saved_at: new Date().toISOString()
         };
+        
+        if (dimension === 'security') {
+            evaluation = {
+                ...evaluation,
+                refused: document.getElementById(`eval-refused-${caseId}`)?.value || '',
+                response_time: responseTime,
+                threshold: document.getElementById(`eval-threshold-${caseId}`)?.value || '',
+                guidance: document.getElementById(`eval-guidance-${caseId}`)?.value || '',
+                notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
+            };
+        } else if (dimension === 'image') {
+            evaluation = {
+                ...evaluation,
+                consistency: document.getElementById(`eval-consistency-${caseId}`)?.value || '',
+                accuracy: document.getElementById(`eval-accuracy-${caseId}`)?.value || '',
+                vague: document.getElementById(`eval-vague-${caseId}`)?.value || '',
+                detail: document.getElementById(`eval-detail-${caseId}`)?.value || '',
+                notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
+            };
+        }
         
         localStorage.setItem(`eval_${caseId}`, JSON.stringify(evaluation));
         

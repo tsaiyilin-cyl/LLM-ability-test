@@ -36,9 +36,9 @@
                     </div>
                 </div>
                 <div class="btn-group mt-2">
-                    <button class="btn btn-primary btn-sm" onclick="saveConfig()">💾 保存</button>
-                    <button class="btn btn-secondary btn-sm" onclick="testConnection()">🔗 测试连接</button>
-                    <button class="btn btn-secondary btn-sm" id="fetchModelsBtn" onclick="fetchModelsFromAPI()">🔄 获取模型列表</button>
+                    <button class="btn btn-primary btn-sm" onclick="App.saveApiConfig()">💾 保存</button>
+                    <button class="btn btn-secondary btn-sm" onclick="App.testConnection()">🔗 测试连接</button>
+                    <button class="btn btn-secondary btn-sm" id="fetchModelsBtn" onclick="App.fetchModelsFromAPI()">🔄 获取模型列表</button>
                 </div>
                 <div class="status info mt-1" id="apiStatus">⚪ 点击测试连接</div>
             </div>
@@ -47,12 +47,12 @@
         <!-- 控制面板 -->
         <div class="form-grid">
             <div class="card">
-                <div class="collapsible-header" onclick="toggleSection('modelBody')">
+                <div class="collapsible-header" onclick="toggleSection('modelBody', 'modelIcon')">
                     <div>
                         <h3>🤖 选择模型</h3>
                         <span class="model-display" id="modelDisplay">未选择</span>
                     </div>
-                    <span class="toggle-icon" id="modelIcon">▼</span>
+                    <span class="toggle-icon open" id="modelIcon">▼</span>
                 </div>
                 <div class="collapsible-body open" id="modelBody">
                     <div class="model-selector">
@@ -68,11 +68,45 @@
             </div>
 
             <div class="card">
-                <h3 class="mb-1">测试语言</h3>
-                <select id="langSelect" onchange="updatePromptsForLanguage()">
-                    <option value="zh">中文</option>
-                    <option value="en">English</option>
-                </select>
+                <div class="collapsible-header" onclick="toggleSection('langBody', 'langIcon')">
+                    <h3>🌐 测试语言</h3>
+                    <span class="toggle-icon open" id="langIcon">▼</span>
+                </div>
+                <div class="collapsible-body open" id="langBody">
+                    <select id="langSelect">
+                        <option value="zh">中文</option>
+                        <option value="en">English</option>
+                        <option value="all">🌐 中英全选</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="collapsible-header" onclick="toggleSection('testBody', 'testIcon')">
+                    <h3>🚀 执行测试</h3>
+                    <span class="toggle-icon open" id="testIcon">▼</span>
+                </div>
+                <div class="collapsible-body open" id="testBody">
+                    <button class="btn btn-primary btn-block" id="runTestBtn" onclick="App.runTests()">
+                        🚀 运行选中测试
+                    </button>
+                    <div class="checkbox-wrapper mt-1">
+                        <input type="checkbox" id="selectAll" onchange="App.toggleSelectAll()">
+                        <label for="selectAll" style="color: var(--text-secondary); font-size: 0.875rem;">全选所有用例</label>
+                    </div>
+                    <div class="checkbox-wrapper mt-1">
+                        <input type="checkbox" id="consistencyTest" checked>
+                        <label for="consistencyTest" style="color: var(--text-secondary); font-size: 0.875rem;">
+                            🔄 启用推理一致性测试
+                        </label>
+                    </div>
+                    <div class="form-field mt-1" id="repeatTimesField" style="display: none;">
+                        <label style="font-size: 0.875rem; color: var(--text-secondary);">重复询问次数</label>
+                        <input type="number" id="repeatTimes" min="2" max="10" value="3" 
+                               style="width: 100px; padding: 0.25rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 0.5rem;">次（2-10）</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -85,26 +119,26 @@
             <div class="collapsible-body open" id="promptBody">
                 <div class="form-grid">
                     <div class="form-field">
-                        <label>System Prompt <span class="label-hint">(系统提示词)</span></label>
-                        <textarea id="sysPrompt"></textarea>
+                        <label>System Prompt <span style="font-size: 0.7rem; color: var(--accent-primary);">(系统提示词)</span></label>
+                        <textarea id="sysPrompt" placeholder="输入系统提示词..."></textarea>
                         <span class="hint">定义 AI 助手的角色和行为</span>
                     </div>
                     <div class="form-field">
-                        <label>User Prompt <span class="label-hint">(用户提示词模板)</span></label>
-                        <textarea id="userPrompt"></textarea>
-                        <span class="hint">识别图片内容时使用的提示词</span>
+                        <label>User Prompt <span style="font-size: 0.7rem; color: var(--accent-primary);">(用户提示词模板)</span></label>
+                        <textarea id="userPrompt" placeholder="输入用户提示词模板..."></textarea>
+                        <span class="hint">使用 <code>{question}</code> 作为图片名称占位符</span>
                     </div>
                 </div>
                 <div class="btn-group mt-2">
-                    <button class="btn btn-secondary btn-sm" onclick="resetPrompts()">🔄 重置为默认</button>
-                    <button class="btn btn-secondary btn-sm" onclick="savePrompts()">💾 保存提示词</button>
+                    <button class="btn btn-secondary btn-sm" onclick="App.resetPrompts()">🔄 重置为默认</button>
+                    <button class="btn btn-secondary btn-sm" onclick="App.savePrompts()">💾 保存提示词</button>
                 </div>
             </div>
         </section>
 
-        <!-- 图片上传 -->
+        <!-- 图片上传（保留单图测试功能） -->
         <section class="card">
-            <h3 class="mb-1">📤 上传测试图片</h3>
+            <h3 class="mb-1">📤 上传测试图片（单图测试）</h3>
             <div class="image-upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
                 <input type="file" id="imageInput" accept="image/*" class="hidden-input" onchange="handleImageUpload(event)">
                 <p class="upload-text">点击或拖拽图片到此处上传</p>
@@ -120,8 +154,8 @@
         <!-- 预设测试图片 -->
         <section class="card">
             <h3 class="mb-1">🖼️ 预设测试图片</h3>
-            <p class="preset-hint">点击图片进行分类测试</p>
-            <div class="test-grid" id="imageGrid">
+            <p class="preset-hint">勾选图片进行批量测试，或点击图片进行单图测试</p>
+            <div class="test-grid" id="testCasesGrid">
                 <!-- 图片列表将在这里加载 -->
             </div>
         </section>
@@ -129,8 +163,25 @@
         <!-- 测试结果 -->
         <section class="card hidden" id="resultsSection">
             <div class="card-header">
-                <h3>📊 分类结果</h3>
-                <button class="btn btn-secondary btn-sm" onclick="clearResults()">清空结果</button>
+                <h3>📊 测试结果</h3>
+                <div class="btn-group">
+                    <button class="btn btn-primary btn-sm" onclick="Components.generateEvaluationReport()">📋 生成评估报告</button>
+                    <button class="btn btn-secondary btn-sm" onclick="App.clearResults()">清空结果</button>
+                </div>
+            </div>
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalTests">0</div>
+                    <div class="stat-label">总测试数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="passedCount">0</div>
+                    <div class="stat-label">成功测试</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="avgTime">0s</div>
+                    <div class="stat-label">平均响应</div>
+                </div>
             </div>
             <div id="resultsContainer"></div>
         </section>
@@ -138,31 +189,16 @@
 
     <script src="/static/js/api.js"></script>
     <script src="/static/js/components.js"></script>
+    <script src="/static/js/app.js"></script>
     <script>
-        let currentImage = null;
-        let testResults = [];
-
-        // 默认提示词 (中英文)
-        const defaultPrompts = {
-            zh: {
-                sys: "你是一个出色的图片分类助手，对于用户输入的一张图片，可以识别图片中的主体，并且输出正确的类别。",
-                user: "识别图片中的内容，再回答正确分类之前先输出理由。输出格式为：\n1.reasoning\n{{推理内容}}\n2.answer\n{{类别名}}"
-            },
-            en: {
-                sys: "You are an excellent image classification assistant. For an image input by the user, you can identify the subject in the image and output the correct category.",
-                user: "Identify the content in the image. Before answering the correct classification, output the reasoning. Format:\n1.reasoning\n{{reasoning}}\n2.answer\n{{category}}"
-            }
-        };
-
         // 折叠面板
-        function toggleSection(id) {
-            const body = document.getElementById(id);
-            const iconId = id.replace('Body', 'Icon');
+        function toggleSection(bodyId, iconId) {
+            // 独立的折叠函数，每个折叠框互不影响
+            const body = document.getElementById(bodyId);
             const icon = document.getElementById(iconId);
-            
-            body.classList.toggle('open');
-            
-            // 更新图标旋转状态
+            if (body) {
+                body.classList.toggle('open');
+            }
             if (icon) {
                 icon.classList.toggle('open');
             }
@@ -174,76 +210,9 @@
             input.type = input.type === 'password' ? 'text' : 'password';
         }
 
-        // 保存配置
-        function saveConfig() {
-            const config = API.getConfig();
-            API.saveConfig(config);
-            document.getElementById('apiStatus').className = 'status success mt-1';
-            document.getElementById('apiStatus').textContent = '✅ 配置已保存';
-        }
+        // 图片上传相关函数（保留单图测试功能）
+        let currentImage = null;
 
-        // 测试连接
-        async function testConnection() {
-            const status = document.getElementById('apiStatus');
-            status.className = 'status info mt-1';
-            status.textContent = '🔄 正在测试...';
-            
-            try {
-                // 获取选中的模型
-                const modelSelect = document.getElementById('modelSelect');
-                const model = modelSelect?.value || 'o3';
-                const result = await API.testConnection(model);
-                if (result.success) {
-                    status.className = 'status success mt-1';
-                    status.textContent = '✅ 连接成功！';
-                } else {
-                    status.className = 'status error mt-1';
-                    status.textContent = '❌ ' + result.error;
-                }
-            } catch (e) {
-                status.className = 'status error mt-1';
-                status.textContent = '❌ ' + e.message;
-            }
-        }
-
-        // 更新提示词（根据语言）
-        function updatePromptsForLanguage() {
-            const lang = document.getElementById('langSelect').value;
-            const saved = localStorage.getItem(`llm_prompts_image_${lang}`);
-            
-            if (saved) {
-                const prompts = JSON.parse(saved);
-                document.getElementById('sysPrompt').value = prompts.sys_prompt || '';
-                document.getElementById('userPrompt').value = prompts.user_prompt || '';
-            } else {
-                const defaults = defaultPrompts[lang];
-                document.getElementById('sysPrompt').value = defaults.sys;
-                document.getElementById('userPrompt').value = defaults.user;
-            }
-        }
-
-        // 保存提示词
-        function savePrompts() {
-            const lang = document.getElementById('langSelect').value;
-            const prompts = {
-                sys_prompt: document.getElementById('sysPrompt').value,
-                user_prompt: document.getElementById('userPrompt').value
-            };
-            localStorage.setItem(`llm_prompts_image_${lang}`, JSON.stringify(prompts));
-            Components.toast('✅ 提示词已保存！');
-        }
-
-        // 重置提示词
-        function resetPrompts() {
-            const lang = document.getElementById('langSelect').value;
-            const defaults = defaultPrompts[lang];
-            document.getElementById('sysPrompt').value = defaults.sys;
-            document.getElementById('userPrompt').value = defaults.user;
-            localStorage.removeItem(`llm_prompts_image_${lang}`);
-            Components.toast('🔄 已重置为默认提示词');
-        }
-
-        // 图片上传
         function handleImageUpload(event) {
             const file = event.target.files[0];
             if (file) {
@@ -260,30 +229,31 @@
 
         // 拖拽上传
         const uploadZone = document.getElementById('uploadZone');
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('dragover');
-        });
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('dragover');
-        });
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(ev) {
-                    currentImage = ev.target.result;
-                    document.getElementById('imagePreview').src = currentImage;
-                    document.getElementById('imagePreview').classList.remove('hidden');
-                    document.getElementById('classifyBtn').disabled = false;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+        if (uploadZone) {
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        currentImage = ev.target.result;
+                        document.getElementById('imagePreview').src = currentImage;
+                        document.getElementById('imagePreview').classList.remove('hidden');
+                        document.getElementById('classifyBtn').disabled = true;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
 
-        // 清除图片
         function clearImage() {
             currentImage = null;
             document.getElementById('imagePreview').classList.add('hidden');
@@ -291,7 +261,6 @@
             document.getElementById('classifyBtn').disabled = true;
         }
 
-        // 分类图片
         async function classifyImage() {
             if (!currentImage) return;
             
@@ -303,18 +272,16 @@
             resultsSection.classList.remove('hidden');
             const container = document.getElementById('resultsContainer');
             
-            const lang = document.getElementById('langSelect').value;
+            const lang = document.getElementById('langSelect')?.value || 'zh';
             const loading = Components.createLoading('classify', lang === 'zh' ? '正在分析图片...' : 'Analyzing image...');
             container.insertBefore(loading, container.firstChild);
             
             try {
                 const prompts = {
-                    sys_prompt: document.getElementById('sysPrompt').value,
-                    user_prompt: document.getElementById('userPrompt').value
+                    sys_prompt: document.getElementById('sysPrompt')?.value || '',
+                    user_prompt: document.getElementById('userPrompt')?.value || ''
                 };
-                // 获取选中的模型
-                const modelSelect = document.getElementById('modelSelect');
-                const model = modelSelect?.value || 'o3';
+                const model = App.getSelectedModel();
                 
                 const result = await API.classifyImage(currentImage, model, prompts);
                 
@@ -352,222 +319,102 @@
             btn.textContent = '🔍 开始分类';
         }
 
-        // 清空结果
-        function clearResults() {
-            testResults = [];
-            document.getElementById('resultsContainer').innerHTML = '';
-        }
-
-        // 加载预设图片
-        function loadPresetImages() {
-            const images = [
-                { id: '1', name: 'hot_pink', path: '../../data/2图片分类/data/1-hot_pink.jpg' },
-                { id: '10', name: '箱龟', path: '../../data/2图片分类/data/10-箱龟.jpg' },
-                { id: '13', name: '考拉', path: '../../data/2图片分类/data/13-考拉1.jpg' },
-                { id: '17', name: '金毛寻回犬', path: '../../data/2图片分类/data/17-金毛寻回犬_简单.jpg' }
-            ];
+        // 扩展 App 模块以支持图片分类的特殊渲染
+        const originalRenderTestCases = App.renderTestCases;
+        App.renderTestCases = function() {
+            const grid = document.getElementById('testCasesGrid');
+            if (!grid) return;
             
-            const grid = document.getElementById('imageGrid');
-            grid.innerHTML = '<p class="text-muted">预设图片功能开发中...</p>';
-        }
-
-        // 加载配置
-        function loadConfig() {
-            const config = API.loadConfig();
-            if (config) {
-                document.getElementById('apiBaseUrl').value = config.base_url || '';
-                document.getElementById('apiKey').value = config.api_key || '';
-            }
-        }
-
-        // 从 API 获取模型列表
-        async function fetchModelsFromAPI() {
-            const config = API.getConfig();
-            if (!config.base_url || !config.api_key) {
-                Components.toast('❌ 请先配置 API Base URL 和 API Key', 'error');
-                return;
-            }
+            grid.innerHTML = '';
             
-            const btn = document.getElementById('fetchModelsBtn');
-            const originalText = btn?.textContent;
-            
-            if (btn) {
-                btn.disabled = true;
-                btn.textContent = '⏳ 获取中...';
+            // 如果是图片分类，使用特殊的渲染方式
+            if (this.state.currentDimension === 'image') {
+                this.renderImageTestCases();
+            } else {
+                // 其他维度使用原有方式
+                originalRenderTestCases.call(this);
             }
+        };
+
+        // 渲染图片测试用例
+        App.renderImageTestCases = async function() {
+            const grid = document.getElementById('testCasesGrid');
+            if (!grid) return;
+            
+            grid.innerHTML = '<p class="text-muted">正在加载预设图片...</p>';
             
             try {
-                const models = await API.fetchModelsFromAPI();
+                const lang = document.getElementById('langSelect')?.value || 'zh';
+                const loadLang = lang === 'all' ? 'zh' : lang;
+                const response = await fetch(`/api/preset-images?lang=${loadLang}`);
+                const result = await response.json();
                 
-                if (models.length === 0) {
-                    Components.toast('⚠️ API 返回了空模型列表', 'warning');
-                    return;
-                }
-                
-                // 保存到本地存储
-                localStorage.setItem('llm_fetched_models', JSON.stringify(models));
-                
-                // 重新初始化模型选择器
-                await initModelSelect();
-                
-                Components.toast(`✅ 成功获取 ${models.length} 个模型`, 'success');
-                
-            } catch (error) {
-                console.error('获取模型列表失败:', error);
-                Components.toast(`❌ 获取失败: ${error.message}`, 'error');
-            } finally {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = originalText || '🔄 从 API 获取模型';
-                }
-            }
-        }
-
-        // 更新模型显示
-        function updateModelDisplay() {
-            const modelDisplay = document.getElementById('modelDisplay');
-            const modelSelect = document.getElementById('modelSelect');
-            
-            if (!modelDisplay) return;
-            
-            let displayText = '未选择';
-            
-            if (modelSelect && modelSelect.value) {
-                const selectedOption = modelSelect.options[modelSelect.selectedIndex];
-                if (selectedOption && !selectedOption.disabled) {
-                    displayText = selectedOption.textContent;
-                }
-            }
-            
-            modelDisplay.textContent = displayText;
-        }
-
-        // 过滤模型列表
-        function filterModels(searchTerm) {
-            const modelSelect = document.getElementById('modelSelect');
-            if (!modelSelect) return;
-            
-            const searchLower = searchTerm.toLowerCase().trim();
-            const allOptions = Array.from(modelSelect.options);
-            
-            if (!searchTerm) {
-                // 显示所有选项
-                allOptions.forEach(option => {
-                    option.style.display = '';
-                });
-                return;
-            }
-            
-            // 过滤匹配的选项
-            allOptions.forEach(option => {
-                const text = option.textContent.toLowerCase();
-                const value = option.value.toLowerCase();
-                
-                if (text.includes(searchLower) || value.includes(searchLower)) {
-                    option.style.display = '';
-                } else {
-                    option.style.display = 'none';
-                }
-            });
-        }
-
-        // 初始化模型选择器
-        async function initModelSelect() {
-            const modelSelect = document.getElementById('modelSelect');
-            const searchInput = document.getElementById('modelSearchInput');
-            
-            if (!modelSelect) return;
-            
-            try {
-                // 清空现有选项
-                modelSelect.innerHTML = '';
-                
-                // 只添加从 API 获取的模型（如果有）
-                const fetchedModels = localStorage.getItem('llm_fetched_models');
-                if (fetchedModels) {
-                    try {
-                        const modelsList = JSON.parse(fetchedModels);
-                        if (modelsList.length > 0) {
-                            modelsList.forEach(model => {
-                                const option = document.createElement('option');
-                                option.value = model.id;
-                                option.textContent = model.name || model.id;
-                                option.dataset.fromApi = 'true';
-                                modelSelect.appendChild(option);
-                            });
-                        } else {
-                            // 如果没有模型，添加提示选项
-                            const placeholderOpt = document.createElement('option');
-                            placeholderOpt.value = '';
-                            placeholderOpt.textContent = '请先获取模型列表';
-                            placeholderOpt.disabled = true;
-                            placeholderOpt.selected = true;
-                            modelSelect.appendChild(placeholderOpt);
-                        }
-                    } catch (e) {
-                        console.error('解析保存的模型列表失败:', e);
-                        // 如果解析失败，添加提示选项
-                        const placeholderOpt = document.createElement('option');
-                        placeholderOpt.value = '';
-                        placeholderOpt.textContent = '请先获取模型列表';
-                        placeholderOpt.disabled = true;
-                        placeholderOpt.selected = true;
-                        modelSelect.appendChild(placeholderOpt);
-                    }
-                } else {
-                    // 如果没有保存的模型，添加提示选项
-                    const placeholderOpt = document.createElement('option');
-                    placeholderOpt.value = '';
-                    placeholderOpt.textContent = '请先获取模型列表';
-                    placeholderOpt.disabled = true;
-                    placeholderOpt.selected = true;
-                    modelSelect.appendChild(placeholderOpt);
-                }
-                
-                // 恢复保存的模型选择
-                const savedModel = localStorage.getItem('llm_selected_model');
-                if (savedModel) {
-                    // 检查保存的模型是否存在于当前列表中
-                    const optionExists = Array.from(modelSelect.options).some(opt => opt.value === savedModel && !opt.disabled);
-                    if (optionExists) {
-                        modelSelect.value = savedModel;
-                    }
-                }
-                
-                // 初始化显示
-                updateModelDisplay();
-                
-                // 监听模型选择变化
-                modelSelect.addEventListener('change', () => {
-                    localStorage.setItem('llm_selected_model', modelSelect.value);
-                    updateModelDisplay();
-                });
-                
-                // 监听搜索输入
-                if (searchInput) {
-                    searchInput.addEventListener('input', (e) => {
-                        filterModels(e.target.value);
+                if (result.success && result.images && result.images.length > 0) {
+                    grid.innerHTML = '';
+                    
+                    // 将图片数据转换为测试用例格式
+                    const imageCases = {};
+                    result.images.forEach(img => {
+                        imageCases[img.id] = {
+                            name: img.name,
+                            category: img.category,
+                            level: img.level,
+                            type: img.type,
+                            filename: img.url.split('/').pop(),
+                            url: img.url
+                        };
                     });
                     
-                    // 按 ESC 键清空搜索
-                    searchInput.addEventListener('keydown', (e) => {
-                        if (e.key === 'Escape') {
-                            searchInput.value = '';
-                            filterModels('');
-                        }
+                    // 更新 testCases
+                    this.state.testCases = imageCases;
+                    
+                    // 渲染图片卡片
+                    result.images.forEach(img => {
+                        const isSelected = this.state.selectedCases.has(img.id);
+                        const card = Components.createImageTestCard(
+                            img.id,
+                            img,
+                            isSelected,
+                            () => this.toggleCase(img.id)
+                        );
+                        grid.appendChild(card);
                     });
+                } else {
+                    grid.innerHTML = '<p class="text-muted">暂无预设图片</p>';
                 }
             } catch (error) {
-                console.error('加载模型列表失败:', error);
+                console.error('加载预设图片失败:', error);
+                grid.innerHTML = '<p class="text-muted">加载失败，请刷新页面重试</p>';
+            }
+        };
+
+        // 控制一致性测试重复次数输入框的显示
+        function initConsistencyTestControl() {
+            const consistencyCheckbox = document.getElementById('consistencyTest');
+            const repeatTimesField = document.getElementById('repeatTimesField');
+            
+            if (consistencyCheckbox && repeatTimesField) {
+                // 初始化显示状态
+                repeatTimesField.style.display = consistencyCheckbox.checked ? 'block' : 'none';
+                
+                // 监听复选框变化
+                consistencyCheckbox.addEventListener('change', function() {
+                    repeatTimesField.style.display = this.checked ? 'block' : 'none';
+                });
             }
         }
         
-
         // 初始化
-        loadConfig();
-        loadPresetImages();
-        initModelSelect();
-        updatePromptsForLanguage(); // 初始化提示词
+        App.init('image');
+        
+        // 初始化一致性测试控制
+        document.addEventListener('DOMContentLoaded', initConsistencyTestControl);
+        // 如果DOM已经加载完成，立即执行
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initConsistencyTestControl);
+        } else {
+            initConsistencyTestControl();
+        }
     </script>
 </body>
 </html>

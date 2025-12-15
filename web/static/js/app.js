@@ -219,8 +219,36 @@ const App = {
         } else {
             this.state.selectedCases.add(id);
         }
-        this.renderTestCases();
+        
+        // 如果是图片分类，只更新单个卡片而不是重新渲染整个列表
+        if (this.state.currentDimension === 'image') {
+            this.updateImageCard(id);
+        } else {
+            this.renderTestCases();
+        }
+        
         this.updateSelectAllCheckbox();
+    },
+    
+    // 更新单个图片卡片（避免重新渲染整个列表）
+    updateImageCard(id) {
+        const card = document.querySelector(`#testCasesGrid .test-card[data-case-id="${id}"]`);
+        if (!card) return;
+        
+        const isSelected = this.state.selectedCases.has(id);
+        const checkbox = card.querySelector(`input[type="checkbox"][id="img-${id}"]`);
+        
+        // 更新选中状态
+        if (checkbox) {
+            checkbox.checked = isSelected;
+        }
+        
+        // 更新卡片样式
+        if (isSelected) {
+            card.classList.add('selected');
+        } else {
+            card.classList.remove('selected');
+        }
     },
     
     // 全选/取消全选
@@ -231,7 +259,16 @@ const App = {
         } else {
             this.state.selectedCases.clear();
         }
-        this.renderTestCases();
+        
+        // 如果是图片分类，批量更新卡片而不是重新渲染整个列表
+        if (this.state.currentDimension === 'image') {
+            const allCaseIds = Object.keys(this.state.testCases);
+            allCaseIds.forEach(id => {
+                this.updateImageCard(id);
+            });
+        } else {
+            this.renderTestCases();
+        }
     },
     
     // 更新全选复选框状态
@@ -279,11 +316,26 @@ const App = {
                 container?.appendChild(loading);
                 
                 try {
+                    // 如果是图片分类，检查是否启用一致性测试
+                    const consistencyTest = this.state.currentDimension === 'image' 
+                        ? document.getElementById('consistencyTest')?.checked || false 
+                        : false;
+                    
+                    // 获取自定义的重复次数（如果启用一致性测试）
+                    const repeatTimes = consistencyTest 
+                        ? parseInt(document.getElementById('repeatTimes')?.value || '3', 10) 
+                        : 1;
+                    
+                    // 确保重复次数在合理范围内
+                    const validRepeatTimes = Math.max(2, Math.min(10, repeatTimes));
+                    
                     const result = await API.runTest({
                         dimension: this.state.currentDimension,
                         model,
                         case_id: caseId,
                         lang: testLang,
+                        consistency_test: consistencyTest,
+                        repeat_times: consistencyTest ? validRepeatTimes : 1,
                         ...prompts
                     });
                     
