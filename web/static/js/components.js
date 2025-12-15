@@ -180,6 +180,7 @@ const Components = {
                 ${result.dimension === 'hallucination' ? `
                     <button class="eval-btn btn-secondary" onclick="Components.showEvaluationForm('${evalCaseId}', 'hallucination')">📋 详细评估</button>
                 ` : ''}
+                <button class="eval-btn btn-retry" data-retry="true" title="重新运行此测试">🔄 重试</button>
             </div>
             ${isSecurity ? this.createEvaluationForm(evalCaseId, result.response_time) : ''}
             ${result.dimension === 'image' ? this.createImageEvaluationForm(evalCaseId) : ''}
@@ -258,7 +259,103 @@ const Components = {
             }
         }
         
+        // 绑定重试按钮事件
+        const retryBtn = card.querySelector('.btn-retry[data-retry]');
+        if (retryBtn) {
+            retryBtn.onclick = async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                await this.retryTest(result, card);
+            };
+        }
+        
         return card;
+    },
+    
+    // 重试单个测试
+    async retryTest(originalResult, card) {
+        const config = API.getConfig();
+        if (!config.api_key) {
+            this.toast('请先配置 API Key', 'error');
+            return;
+        }
+        
+        // 获取重试按钮并禁用
+        const retryBtn = card.querySelector('.btn-retry');
+        if (retryBtn) {
+            retryBtn.disabled = true;
+            retryBtn.innerHTML = '⏳ 重试中...';
+        }
+        
+        // 添加加载状态
+        card.classList.add('retrying');
+        
+        try {
+            const model = App.getSelectedModel();
+            const prompts = App.getPrompts();
+            
+            // 检查是否是图片分类的一致性测试
+            const consistencyTest = originalResult.consistency_test || false;
+            const repeatTimes = originalResult.repeat_times || 1;
+            
+            const result = await API.runTest({
+                dimension: originalResult.dimension,
+                model,
+                case_id: originalResult.case_id,
+                lang: originalResult.test_lang || 'zh',
+                consistency_test: consistencyTest,
+                repeat_times: repeatTimes,
+                ...prompts
+            });
+            
+            if (result.success) {
+                // 复制原结果的维度和语言信息
+                result.dimension = originalResult.dimension;
+                result.test_lang = originalResult.test_lang;
+                result.case_id_display = originalResult.case_id_display;
+                
+                // 更新 App.state.testResults 中的对应结果
+                const resultIndex = App.state.testResults.findIndex(r => {
+                    const rKey = r.test_lang ? `${r.case_id}-${r.test_lang}` : r.case_id;
+                    const origKey = originalResult.test_lang ? `${originalResult.case_id}-${originalResult.test_lang}` : originalResult.case_id;
+                    return rKey === origKey;
+                });
+                
+                if (resultIndex !== -1) {
+                    // 保留原有的评估状态
+                    result.evaluation = App.state.testResults[resultIndex].evaluation;
+                    App.state.testResults[resultIndex] = result;
+                }
+                
+                // 保存到 localStorage
+                App.saveTestResults();
+                
+                // 更新卡片内容
+                const newCard = this.createResultCard(result);
+                card.replaceWith(newCard);
+                
+                // 更新统计
+                App.updateStats();
+                
+                this.toast('✅ 重试成功！', 'success');
+            } else {
+                this.toast(`❌ 重试失败: ${result.error}`, 'error');
+                // 恢复按钮状态
+                if (retryBtn) {
+                    retryBtn.disabled = false;
+                    retryBtn.innerHTML = '🔄 重试';
+                }
+                card.classList.remove('retrying');
+            }
+        } catch (error) {
+            this.toast(`❌ 重试失败: ${error.message}`, 'error');
+            // 恢复按钮状态
+            if (retryBtn) {
+                retryBtn.disabled = false;
+                retryBtn.innerHTML = '🔄 重试';
+            }
+            card.classList.remove('retrying');
+        }
     },
     
     // 创建评估表单（图片分类专用）
@@ -1101,16 +1198,10 @@ const Components = {
     },
     
     // 创建错误卡片
-    createErrorCard(caseId, error, testParams = null) {
+    createErrorCard(caseId, error) {
         const card = document.createElement('div');
-        card.className = 'result-card error-card';
-        card.id = `error-${caseId}`;
+        card.className = 'result-card';
         card.style.borderColor = 'var(--accent-danger)';
-        
-        // 保存测试参数供重试使用
-        if (testParams) {
-            card.dataset.testParams = JSON.stringify(testParams);
-        }
         
         card.innerHTML = `
             <div class="result-meta">
@@ -1121,33 +1212,7 @@ const Components = {
                 <h4>错误信息</h4>
                 <pre style="color: var(--accent-danger);">${error}</pre>
             </div>
-            <div class="error-actions" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-                <button class="btn btn-primary btn-sm retry-btn" data-case-id="${caseId}">
-                    🔄 重试此任务
-                </button>
-                <button class="btn btn-secondary btn-sm dismiss-btn" data-case-id="${caseId}">
-                    ✖️ 忽略
-                </button>
-            </div>
         `;
-        
-        // 绑定重试按钮事件
-        const retryBtn = card.querySelector('.retry-btn');
-        if (retryBtn) {
-            retryBtn.onclick = () => {
-                if (typeof App !== 'undefined' && App.retryTest) {
-                    App.retryTest(caseId, card);
-                }
-            };
-        }
-        
-        // 绑定忽略按钮事件
-        const dismissBtn = card.querySelector('.dismiss-btn');
-        if (dismissBtn) {
-            dismissBtn.onclick = () => {
-                card.remove();
-            };
-        }
         
         return card;
     },

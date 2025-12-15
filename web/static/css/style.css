@@ -987,6 +987,51 @@ body::after {
     color: white;
 }
 
+/* 重试按钮样式 */
+.btn-retry {
+    background: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.3);
+    color: #ffc107;
+    transition: all 0.2s ease;
+}
+
+.btn-retry:hover {
+    background: rgba(255, 193, 7, 0.2);
+    border-color: rgba(255, 193, 7, 0.5);
+    color: #ffca2c;
+    transform: scale(1.02);
+}
+
+.btn-retry:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 重试中的卡片状态 */
+.result-card.retrying {
+    position: relative;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.result-card.retrying::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: inherit;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.5; }
+}
+
 /* ============================================
    Stats Bar
    ============================================ */
