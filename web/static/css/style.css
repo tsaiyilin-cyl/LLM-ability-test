@@ -854,7 +854,7 @@ body::after {
 .eval-status-indicator {
     position: absolute;
     top: 1rem;
-    right: 1rem;
+    right: 4.5rem;
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -882,6 +882,83 @@ body::after {
 @keyframes pulseGlow {
     0%, 100% { box-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
     50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+}
+
+.result-actions {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    z-index: 10;
+}
+
+.retest-result-btn,
+.delete-result-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    padding: 0;
+    margin: 0;
+    opacity: 0.7;
+    border: 1px solid;
+}
+
+.retest-result-btn {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: rgba(59, 130, 246, 0.8);
+}
+
+.retest-result-btn:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: rgba(59, 130, 246, 1);
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    opacity: 1;
+}
+
+.retest-result-btn:active {
+    transform: scale(0.95);
+}
+
+.retest-result-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.delete-result-btn {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: rgba(239, 68, 68, 0.8);
+}
+
+.delete-result-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: rgba(239, 68, 68, 1);
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+    opacity: 1;
+}
+
+.delete-result-btn:active {
+    transform: scale(0.95);
+}
+
+.retest-result-btn span,
+.delete-result-btn span {
+    display: inline-block;
+    line-height: 1;
+    pointer-events: none;
 }
 
 .result-meta {

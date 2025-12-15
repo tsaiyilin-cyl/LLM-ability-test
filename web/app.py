@@ -206,7 +206,7 @@ TEST_CASES = {
             "data5": {"question": "A问B：'重庆是不是没啥必吃的小吃呢？'B生气地说：'你凭什么剥夺他们的吃饭权？'请解释这个谐音梗。", "level": "中", "type": "中文谐音", "explain": "断句断错了，把'啥必'听成了'傻B'"},
             "data6": {"question": "小明最近迷上了《三国演义》，他很喜欢赵云。小明的奶奶没有看过《三国演义》，她让小明讲《三国演义》里的故事给他听，于是小明兴高采烈地讲起了赵云的故事，并模仿着赵云威武的声音：'我奶常山赵子龙也'。奶奶很惊讶：'宝啊，我可没有打过别人的噢'。请解释这个谐音梗。", "level": "高", "type": "中文谐音", "explain": "'我乃常山赵子龙'同音于'我奶常扇赵子龙'，让奶奶惊讶'我没打过人'"},
             "data7": {"question": "医生对患者说：'Mercury is in Uranus right now'，患者不解：'我又不信天象的'，医生说：'我也不信天象啊，我意思是体温计裂开了'。请解释这个谐音梗。", "level": "极高", "type": "英文双关", "explain": "Mercury有'水星'、'水银'两个意思，Uranus有天王星的意思，所以患者理解水星在天王星正位，实则医生的意思是'Mercury is in your anus'：水银掉在你的肛门里了（体温计裂开）"},
-            "data8": {"question": "B向A展示一张照片，A说：'这是你在浴室的照片吗？有点模糊'，B说：'Sorry, I have selfi steam issues'，B说：'哦对不起，我没有攻击你'，A说：'真是莫名其妙'。请解释这个谐音梗。", "level": "高", "type": "英文谐音", "explain": "selfie steam issues意为拍的自拍有蒸汽，但是连读同音于'self esteem issues'自尊心受打击，所以B道歉，A觉得莫名其妙"},
+            "data8": {"question": "B向A展示一张照片，A说：'这是你在浴室的照片吗？有点模糊'，B说：'Sorry, I have selfie steam issues'，A说：'哦对不起，我没有攻击你'，B说：'真是莫名其妙'。请解释这个谐音梗。", "level": "高", "type": "英文谐音", "explain": "selfie steam issues意为拍的自拍有蒸汽，但是连读同音于'self esteem issues'自尊心受打击，所以A道歉，B觉得莫名其妙"},
             "data9": {"question": "小王和同事小李说：'我第一次登一个英国网站，网站让我接受cookies是什么意思啊？'，小李说：'你瞎说，英国网站不应该用biscuits吗？'请解释这个谐音梗。", "level": "中", "type": "英文文化", "explain": "这不是谐音梗，而是文化梗。cookies在美式英语中指饼干，biscuits在英式英语中指饼干，小李开玩笑说英国网站应该用英式说法"},
             "data10": {"question": "A问B：'TBH和IDK是什么意思？'B回答：'To be honest, I don\\'t know'，A很生气：'那你回答我干嘛？'请解释这个谐音梗。", "level": "低", "type": "英文缩写", "explain": "这不是谐音梗。TBH = To Be Honest，IDK = I Don't Know，B其实正确回答了问题，但A误以为B不知道答案"},
         },
@@ -218,7 +218,7 @@ TEST_CASES = {
             "data5": {"question": "A asked B, 'Does Chongqing not have any must-eat snacks?' B angrily said, 'How can you deprive them of their right to eat?' Please explain this pun.", "level": "Medium", "type": "Chinese Pun", "explain": "In Chinese, '啥必' (what must) sounds like '傻B' (a swear word), causing B to misunderstand."},
             "data6": {"question": "Xiao Ming said in Zhao Yun's majestic voice: 'I am Zhao Zilong of Changshan!' His grandmother was surprised: 'Dear, I have never hit anyone!' Please explain this pun.", "level": "High", "type": "Chinese Pun", "explain": "'我乃常山赵子龙' (I am Zhao Zilong of Changshan) sounds like '我奶常扇赵子龙' (My grandma often slaps Zhao Zilong)."},
             "data7": {"question": "Doctor said to the patient, 'Mercury is in Uranus right now.' The patient, confused, said, 'I don't believe in astrology.' Doctor said, 'I don't believe in astrology either; I meant the thermometer is broken.' Please explain this pun.", "level": "Critical", "type": "English Double Meaning", "explain": "Mercury = planet/liquid metal, Uranus = planet but sounds like 'your anus'. Doctor meant 'mercury is in your anus' (thermometer broke)."},
-            "data8": {"question": "B showed A a photo. A said, 'Is this your photo in the bathroom? It's a bit blurry.' B said, 'Sorry, I have selfie steam issues.' Then B said, 'Oh sorry, I didn't mean to attack you.' A said, 'That's nonsense.' Please explain this pun.", "level": "High", "type": "English Pun", "explain": "'selfie steam issues' sounds like 'self-esteem issues' when spoken quickly, causing the confusion."},
+            "data8": {"question": "B showed A a photo. A said, 'Is this your photo in the bathroom? It's a bit blurry.' B said, 'Sorry, I have selfie steam issues.' A said, 'Oh sorry, I didn't mean to attack you.' B said, 'That's nonsense.' Please explain this pun.", "level": "High", "type": "English Pun", "explain": "'selfie steam issues' sounds like 'self-esteem issues' when spoken quickly. B meant the photo has steam (blur), but A heard it as 'self-esteem issues' (low self-confidence), so A apologized, and B was confused."},
             "data9": {"question": "Xiao Wang said to his colleague Xiao Li, 'The first time I visited a British website, it asked me to accept cookies. What does that mean?' Xiao Li replied, 'You're kidding. Shouldn't British websites use biscuits?' Please explain this pun.", "level": "Medium", "type": "English Culture", "explain": "Not a homophone pun but a cultural joke. 'Cookies' is American English for biscuits, while 'biscuits' is British English."},
             "data10": {"question": "A asked B, 'What do TBH and IDK mean?' B replied, 'To be honest, I don't know.' A got angry and said, 'Then why did you answer me?' Please explain this pun.", "level": "Low", "type": "English Abbreviation", "explain": "Not a homophone pun. TBH = To Be Honest, IDK = I Don't Know. B actually answered correctly, but A misunderstood."},
         }
@@ -668,6 +668,8 @@ def run_test():
             })
         else:
             # 文本测试：替换问题占位符（支持 {question} 和 {input} 两种格式）
+            # 注意：只使用 test_case.get('question', '')，不使用 explain 字段
+            # explain 字段仅用于返回结果时供前端显示参考解释，不会作为提示词发送给模型
             user_prompt = user_template.replace('{question}', test_case.get('question', ''))
             user_prompt = user_prompt.replace('{input}', test_case.get('question', ''))
             messages.append({"role": "user", "content": user_prompt})
@@ -841,6 +843,7 @@ def run_test():
             }
         
         # 如果是谐音梗，添加参考解释
+        # 注意：explain 字段仅用于前端显示参考解释，不会作为提示词发送给模型
         if dimension == 'pun':
             explain = test_case.get('explain', '')
             if explain:

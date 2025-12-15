@@ -95,13 +95,14 @@ const Components = {
         // 用于评估表单的唯一ID（包含语言信息）
         const evalCaseId = result.test_lang ? `${result.case_id}-${result.test_lang}` : result.case_id;
         
-        // 检查是否已评估
+        // 检查是否已评估（只检查保存的评估数据，不检查 result.evaluation）
+        // 注意：绿色高亮是评估完成的标志，不是运行完成的标志
         const savedEval = this.loadEvaluation(evalCaseId);
-        const isEvaluated = savedEval || result.evaluation;
+        const isEvaluated = !!savedEval; // 只有保存了评估数据才算已评估
         const evalStatusClass = isEvaluated ? 'evaluated' : 'not-evaluated';
         const evalStatusIcon = isEvaluated ? '✓' : '○';
         
-        // 如果已评估，添加高亮类
+        // 如果已评估，添加高亮类（绿色高亮）
         if (isEvaluated) {
             card.classList.add('evaluated-card');
         }
@@ -109,6 +110,14 @@ const Components = {
         card.innerHTML = `
             <div class="eval-status-indicator ${evalStatusClass}" id="eval-indicator-${evalCaseId}" title="${isEvaluated ? '已评估' : '未评估'}">
                 <span class="eval-status-icon">${evalStatusIcon}</span>
+            </div>
+            <div class="result-actions">
+                <button class="retest-result-btn" onclick="App.retestResult('${cardId}', '${evalCaseId}')" title="重新测试">
+                    <span>🔄</span>
+                </button>
+                <button class="delete-result-btn" onclick="App.deleteResult('${cardId}', '${evalCaseId}')" title="删除此测试结果">
+                    <span>🗑️</span>
+                </button>
             </div>
             <div class="result-meta">
                 <span>🤖 ${result.model}</span>
@@ -241,8 +250,9 @@ const Components = {
             }
             
             // 初始化评估状态标记（所有维度）
+            // 注意：只有保存了评估数据才显示绿色高亮
             const saved = this.loadEvaluation(evalCaseId);
-            if (saved || result.evaluation) {
+            if (saved) {
                 setTimeout(() => {
                     this.updateEvalIndicator(evalCaseId, true);
                 }, 100);
