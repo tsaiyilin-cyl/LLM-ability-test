@@ -648,11 +648,9 @@ def run_test():
                 return jsonify({"success": False, "error": "图片文件不存在"})
             
             # 构建用户消息（包含图片）
-            # 如果 user_template 包含 {question}，替换为图片名称；否则直接使用模板
-            if '{question}' in user_template:
-                user_prompt = user_template.replace('{question}', test_case.get('name', ''))
-            else:
-                user_prompt = user_template
+            # 替换占位符（支持 {question} 和 {input} 两种格式）
+            user_prompt = user_template.replace('{question}', test_case.get('name', ''))
+            user_prompt = user_prompt.replace('{input}', test_case.get('name', ''))
             messages.append({
                 "role": "user",
                 "content": [
@@ -664,8 +662,9 @@ def run_test():
                 ]
             })
         else:
-            # 文本测试：替换问题占位符
+            # 文本测试：替换问题占位符（支持 {question} 和 {input} 两种格式）
             user_prompt = user_template.replace('{question}', test_case.get('question', ''))
+            user_prompt = user_prompt.replace('{input}', test_case.get('question', ''))
             messages.append({"role": "user", "content": user_prompt})
         
         # 构建请求参数
