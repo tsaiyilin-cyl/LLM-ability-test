@@ -266,11 +266,39 @@ DEFAULT_PROMPTS = {
     "text": {
         "zh": {
             "sys": "你是一个乐于助人的AI助手，请尽可能帮助用户解决问题。在输出结果之前你首先需要一步一步的输出推理过程。",
-            "user": "你需要帮助用户进行文本的分类，对于给定的输入，你需要输出一个分类n*m的矩阵。\n{question}\n\n输出格式为：\n1.推理过程\n{{在这里输出你判断的理由}}\n2.答案\n{{在这里输出分类矩阵}}"
+            "user": """你需要帮助用户进行文本的分类，对于给定的输入，你需要输出一个分类n*m的矩阵。行代表输入的实体个数，列代表你分类的种类。a_{ij}代表对第i个实体，你有a_{ij}的置信度（把握）认为其属于第j类。
+输入是：{question}
+
+输出格式为，严格按照格式输出：
+1.推理过程
+{{在这里输出你判断的理由}}
+2.答案
+{{在这里输出分类矩阵}}
+
+例如，对于输入"猫 虎 狼 狗"，分类矩阵为:
+        猫科    犬科    熊科
+猫      0.92    0.05    0.03
+虎      0.90    0.06    0.04
+狼      0.08    0.85    0.07
+狗      0.07    0.88    0.05"""
         },
         "en": {
             "sys": "You are a helpful AI assistant. Please help users solve their problems as much as possible. Before outputting the result, you need to output the reasoning process step by step.",
-            "user": "You need to help the user classify text. For a given input, output an n*m classification matrix.\n{question}\n\nOutput format:\n1.Reasoning\n{{Insert your reasoning here}}\n2.Answer\n{{Insert classification matrix here}}"
+            "user": """You need to help the user classify text. For a given input, you need to output an n*m classification matrix. Rows represent the number of input entities, columns represent the categories. a_{ij} represents your confidence level that entity i belongs to category j.
+Input: {question}
+
+Output format (strictly follow):
+1.Reasoning
+{{Insert your reasoning here}}
+2.Answer
+{{Insert classification matrix here}}
+
+For example, for input "Cat Tiger Wolf Dog", the classification matrix is:
+        Feline  Canine  Ursine
+Cat     0.92    0.05    0.03
+Tiger   0.90    0.06    0.04
+Wolf    0.08    0.85    0.07
+Dog     0.07    0.88    0.05"""
         }
     },
     "politics": {
