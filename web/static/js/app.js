@@ -323,7 +323,7 @@ const App = {
                     
                     // 获取自定义的重复次数（如果启用一致性测试）
                     const repeatTimes = consistencyTest 
-                        ? parseInt(document.getElementById('repeatTimes')?.value || '3', 10) 
+                        ? parseInt(document.getElementById('repeatTimes')?.value || '5', 10) 
                         : 1;
                     
                     // 确保重复次数在合理范围内

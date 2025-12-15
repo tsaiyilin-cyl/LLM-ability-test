@@ -537,7 +537,7 @@ def run_test():
     
     # 获取一致性测试参数（图片分类专用）
     consistency_test = data.get('consistency_test', False)  # 是否进行一致性测试
-    repeat_times = data.get('repeat_times', 3)  # 重复询问次数，默认3次
+    repeat_times = data.get('repeat_times', 5)  # 重复询问次数，默认5次
     repeat_image = data.get('repeat_image', True)  # 是否重复发送图片，默认True（更准确但消耗更多token）
     
     # 获取测试用例
