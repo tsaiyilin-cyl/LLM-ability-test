@@ -1,4 +1,12 @@
+<<<<<<< HEAD
 B向A展示一张照片，A说：“这是你在浴室的照片吗？有点模糊”，B说：“Sorry , I have selfie steam issues”，A说：“哦对不起，我没有攻击你”，B说：“真是莫名其妙”
 En:
 B showed A a photo. A said, "Is this your photo in the bathroom? It's a bit blurry." B said, "Sorry, I have selfie steam issues." A said, "Oh sorry, I didn't mean to attack you." B said, "That's nonsense."
 梗在于：selfie steam issues意为拍的自拍有蒸汽，但是连读同音于“self esteem issues”自尊心受打击，所以A道歉，B觉得莫名其妙
+=======
+Cn:
+B向A展示一张照片，A说："这是你在浴室的照片吗？有点模糊"，B说："Sorry , I have selfie steam issues"，A说："哦对不起，我没有攻击你"，B说："真是莫名其妙"
+En:
+B showed A a photo. A said, "Is this your photo in the bathroom? It's a bit blurry." B said, "Sorry, I have selfie steam issues." A said, "Oh sorry, I didn't mean to attack you." B said, "That's nonsense."
+梗在于：selfie steam issues意为拍的自拍有蒸汽，但是连读同音于"self esteem issues"自尊心受打击，所以A道歉，B觉得莫名其妙
+>>>>>>> dcee691d90679ad1f9a21abed468688a9dde6817

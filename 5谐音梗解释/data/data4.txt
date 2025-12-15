@@ -1,3 +1,5 @@
-大学生甲跟舍友乙说：“我觉得沈从文一定是个很热爱理工科的人”，乙问：”为什么？“甲说：”你不知道他写了本书《边城》吗？“
-
-梗在于：“边城”和“编程”发音一样，甲误认为沈从文“热爱理工科”
+Cn:
+大学生甲跟舍友乙说："我觉得沈从文一定是个很热爱理工科的人"，乙问："为什么？"甲说："你不知道他写了本书《边城》吗？"
+En:
+Student A said to roommate B: "I think Shen Congwen must be someone who loves science and engineering." B asked: "Why?" A said: "Don't you know he wrote a book called 《边城》?"
+梗在于："边城"和"编程"发音一样，甲误认为沈从文"热爱理工科"
