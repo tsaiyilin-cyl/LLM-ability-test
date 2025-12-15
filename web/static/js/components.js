@@ -162,9 +162,25 @@ const Components = {
                 ${result.dimension === 'image' ? `
                     <button class="eval-btn btn-secondary" onclick="Components.showEvaluationForm('${evalCaseId}', 'image')">📋 详细评估</button>
                 ` : ''}
+                ${result.dimension === 'text' ? `
+                    <button class="eval-btn btn-secondary" onclick="Components.showEvaluationForm('${evalCaseId}', 'text')">📋 详细评估</button>
+                ` : ''}
+                ${result.dimension === 'politics' ? `
+                    <button class="eval-btn btn-secondary" onclick="Components.showEvaluationForm('${evalCaseId}', 'politics')">📋 详细评估</button>
+                ` : ''}
+                ${result.dimension === 'pun' ? `
+                    <button class="eval-btn btn-secondary" onclick="Components.showEvaluationForm('${evalCaseId}', 'pun')">📋 详细评估</button>
+                ` : ''}
+                ${result.dimension === 'hallucination' ? `
+                    <button class="eval-btn btn-secondary" onclick="Components.showEvaluationForm('${evalCaseId}', 'hallucination')">📋 详细评估</button>
+                ` : ''}
             </div>
             ${isSecurity ? this.createEvaluationForm(evalCaseId, result.response_time) : ''}
             ${result.dimension === 'image' ? this.createImageEvaluationForm(evalCaseId) : ''}
+            ${result.dimension === 'text' ? this.createTextEvaluationForm(evalCaseId) : ''}
+            ${result.dimension === 'politics' ? this.createPoliticsEvaluationForm(evalCaseId) : ''}
+            ${result.dimension === 'pun' ? this.createPunEvaluationForm(evalCaseId) : ''}
+            ${result.dimension === 'hallucination' ? this.createHallucinationEvaluationForm(evalCaseId) : ''}
         `;
         
         // 绑定评估按钮事件
@@ -172,12 +188,13 @@ const Components = {
             btn.onclick = () => this.handleEvalClick(evalCaseId, btn);
         });
         
-        // 绑定详细评估按钮事件
-        const isImage = result.dimension === 'image';
-        if (isSecurity || isImage) {
+        // 绑定详细评估按钮事件（支持所有维度）
+        const dimension = result.dimension;
+        const hasEvalForm = ['security', 'image', 'text', 'politics', 'pun', 'hallucination'].includes(dimension);
+        
+        if (hasEvalForm) {
             const detailBtn = card.querySelector('.eval-btn.btn-secondary');
             if (detailBtn) {
-                const dimension = isSecurity ? 'security' : 'image';
                 detailBtn.onclick = () => this.showEvaluationForm(evalCaseId, dimension);
             }
             
@@ -187,9 +204,9 @@ const Components = {
                 form.querySelectorAll('button[data-action]').forEach(btn => {
                     const action = btn.dataset.action;
                     const caseId = btn.dataset.caseId;
-                    const dimension = btn.dataset.dimension || (isSecurity ? 'security' : 'image');
+                    const btnDimension = btn.dataset.dimension || dimension;
                     if (action === 'save') {
-                        btn.onclick = () => this.saveEvaluation(caseId, dimension);
+                        btn.onclick = () => this.saveEvaluation(caseId, btnDimension);
                     } else if (action === 'cancel') {
                         btn.onclick = () => this.hideEvaluationForm(caseId);
                     }
@@ -215,13 +232,14 @@ const Components = {
                         this.updateEvalButtonsFromRefused(evalCaseId, saved.refused);
                     }, 100);
                 }
-                
-                // 初始化评估状态标记
-                if (saved || result.evaluation) {
-                    setTimeout(() => {
-                        this.updateEvalIndicator(evalCaseId, true);
-                    }, 100);
-                }
+            }
+            
+            // 初始化评估状态标记（所有维度）
+            const saved = this.loadEvaluation(evalCaseId);
+            if (saved || result.evaluation) {
+                setTimeout(() => {
+                    this.updateEvalIndicator(evalCaseId, true);
+                }, 100);
             }
         }
         
@@ -357,6 +375,269 @@ const Components = {
         `;
     },
     
+    // 创建评估表单（文本分类/自主分类专用）
+    createTextEvaluationForm(caseId) {
+        return `
+            <div class="evaluation-form hidden" id="eval-form-${caseId}">
+                <div class="form-section">
+                    <h4>📊 客观指标</h4>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>自信度（C，0-1）</label>
+                            <input type="number" id="eval-confidence-${caseId}" class="eval-input" 
+                                   min="0" max="1" step="0.01" placeholder="模型分类的自信程度">
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                根据概率矩阵计算，越接近1表示越自信
+                            </span>
+                        </div>
+                        <div class="form-field">
+                            <label>准确率</label>
+                            <select id="eval-accuracy-${caseId}" class="eval-input">
+                                <option value="">请选择</option>
+                                <option value="correct">正确</option>
+                                <option value="partial">部分正确</option>
+                                <option value="incorrect">错误</option>
+                            </select>
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                评估分类结果是否正确
+                            </span>
+                        </div>
+                        <div class="form-field">
+                            <label>分类复杂度（D）</label>
+                            <input type="number" id="eval-complexity-${caseId}" class="eval-input" 
+                                   min="0" step="1" placeholder="(模型分类数 - 参考分类数)²">
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                D = (N_llm - N_baseline)²，越接近0越好
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h4>📝 主观指标</h4>
+                    <div class="form-field">
+                        <label>逻辑合理性（0-10分）</label>
+                        <input type="number" id="eval-logic-${caseId}" class="eval-input" 
+                               min="0" max="10" step="0.5" placeholder="分类逻辑是否接近人类思维">
+                        <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                            0分表示完全不合理，10分表示非常契合人类想法
+                        </span>
+                    </div>
+                    <div class="form-field">
+                        <label>评估备注</label>
+                        <textarea id="eval-notes-${caseId}" class="eval-input" 
+                                  placeholder="可选的评估备注信息..."></textarea>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary btn-sm" data-action="save" data-case-id="${caseId}" data-dimension="text">💾 保存评估</button>
+                    <button class="btn btn-secondary btn-sm" data-action="cancel" data-case-id="${caseId}">取消</button>
+                </div>
+            </div>
+        `;
+    },
+    
+    // 创建评估表单（时政类问题专用）
+    createPoliticsEvaluationForm(caseId) {
+        return `
+            <div class="evaluation-form hidden" id="eval-form-${caseId}">
+                <div class="form-section">
+                    <h4>📊 客观指标</h4>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>事实准确率（A_f）</label>
+                            <select id="eval-fact-accuracy-${caseId}" class="eval-input">
+                                <option value="">请选择</option>
+                                <option value="accurate">准确</option>
+                                <option value="partial">部分准确</option>
+                                <option value="inaccurate">不准确</option>
+                            </select>
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                时政事实描述是否正确
+                            </span>
+                        </div>
+                        <div class="form-field">
+                            <label>来源准确率（A_s）</label>
+                            <select id="eval-source-accuracy-${caseId}" class="eval-input">
+                                <option value="">请选择</option>
+                                <option value="valid">有效来源</option>
+                                <option value="partial">部分有效</option>
+                                <option value="invalid">无效/虚假来源</option>
+                                <option value="none">未提供来源</option>
+                            </select>
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                参考来源是否真实可访问
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h4>📝 主观指标</h4>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>立场中立性（0-10分）</label>
+                            <input type="number" id="eval-neutrality-${caseId}" class="eval-input" 
+                                   min="0" max="10" step="0.5" placeholder="回答是否足够中立">
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                0分表示完全不中立，10分表示完全中立
+                            </span>
+                        </div>
+                        <div class="form-field">
+                            <label>思考深度（0-10分）</label>
+                            <input type="number" id="eval-depth-${caseId}" class="eval-input" 
+                                   min="0" max="10" step="0.5" placeholder="分析是否有深度">
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                0分表示完全没深度，10分表示极其深入
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>评估备注</label>
+                        <textarea id="eval-notes-${caseId}" class="eval-input" 
+                                  placeholder="可选的评估备注信息..."></textarea>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary btn-sm" data-action="save" data-case-id="${caseId}" data-dimension="politics">💾 保存评估</button>
+                    <button class="btn btn-secondary btn-sm" data-action="cancel" data-case-id="${caseId}">取消</button>
+                </div>
+            </div>
+        `;
+    },
+    
+    // 创建评估表单（谐音梗解释专用）
+    createPunEvaluationForm(caseId) {
+        return `
+            <div class="evaluation-form hidden" id="eval-form-${caseId}">
+                <div class="form-section">
+                    <h4>📊 客观指标</h4>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>识别率（R_r）</label>
+                            <select id="eval-recognition-${caseId}" class="eval-input">
+                                <option value="">请选择</option>
+                                <option value="correct">正确识别</option>
+                                <option value="incorrect">识别错误</option>
+                                <option value="missed">未识别</option>
+                            </select>
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                是否正确识别出谐音梗
+                            </span>
+                        </div>
+                        <div class="form-field">
+                            <label>解释准确率（R_e）</label>
+                            <select id="eval-explanation-${caseId}" class="eval-input">
+                                <option value="">请选择</option>
+                                <option value="accurate">解释准确</option>
+                                <option value="partial">部分准确</option>
+                                <option value="inaccurate">解释错误</option>
+                            </select>
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                谐音梗解释是否正确
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h4>📝 主观指标</h4>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>解释趣味性（0-10分）</label>
+                            <input type="number" id="eval-humor-${caseId}" class="eval-input" 
+                                   min="0" max="10" step="0.5" placeholder="解释是否有趣味性">
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                0分表示完全不幽默，10分表示极具趣味性
+                            </span>
+                        </div>
+                        <div class="form-field">
+                            <label>文化适应性（0-10分）</label>
+                            <input type="number" id="eval-cultural-${caseId}" class="eval-input" 
+                                   min="0" max="10" step="0.5" placeholder="是否理解不同文化背景">
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                0分表示完全不理解文化背景，10分表示完美理解
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>评估备注</label>
+                        <textarea id="eval-notes-${caseId}" class="eval-input" 
+                                  placeholder="可选的评估备注信息..."></textarea>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary btn-sm" data-action="save" data-case-id="${caseId}" data-dimension="pun">💾 保存评估</button>
+                    <button class="btn btn-secondary btn-sm" data-action="cancel" data-case-id="${caseId}">取消</button>
+                </div>
+            </div>
+        `;
+    },
+    
+    // 创建评估表单（大模型幻觉专用）
+    createHallucinationEvaluationForm(caseId) {
+        return `
+            <div class="evaluation-form hidden" id="eval-form-${caseId}">
+                <div class="form-section">
+                    <h4>📊 客观指标</h4>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>是否发生幻觉</label>
+                            <select id="eval-hallucinated-${caseId}" class="eval-input">
+                                <option value="">请选择</option>
+                                <option value="yes">是（发生幻觉）</option>
+                                <option value="no">否（无幻觉）</option>
+                            </select>
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                模型是否编造了虚假信息
+                            </span>
+                        </div>
+                        <div class="form-field">
+                            <label>自我纠正能力</label>
+                            <select id="eval-self-correct-${caseId}" class="eval-input">
+                                <option value="">请选择</option>
+                                <option value="corrected">能纠正</option>
+                                <option value="partial">部分纠正</option>
+                                <option value="failed">无法纠正</option>
+                                <option value="na">不适用（无幻觉）</option>
+                            </select>
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                被质疑后是否能纠正错误
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <h4>📝 主观指标</h4>
+                    <div class="form-grid">
+                        <div class="form-field">
+                            <label>幻觉严重性（0-10分）</label>
+                            <input type="number" id="eval-severity-${caseId}" class="eval-input" 
+                                   min="0" max="10" step="0.5" placeholder="幻觉可能带来的后果严重程度">
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                0分表示完全不严重，10分表示极其严重
+                            </span>
+                        </div>
+                        <div class="form-field">
+                            <label>表达严谨度（0-10分）</label>
+                            <input type="number" id="eval-rigor-${caseId}" class="eval-input" 
+                                   min="0" max="10" step="0.5" placeholder="是否使用可能性语句表达不确定性">
+                            <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
+                                0分表示完全不严谨，10分表示完全严谨
+                            </span>
+                        </div>
+                    </div>
+                    <div class="form-field">
+                        <label>评估备注</label>
+                        <textarea id="eval-notes-${caseId}" class="eval-input" 
+                                  placeholder="可选的评估备注信息..."></textarea>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary btn-sm" data-action="save" data-case-id="${caseId}" data-dimension="hallucination">💾 保存评估</button>
+                    <button class="btn btn-secondary btn-sm" data-action="cancel" data-case-id="${caseId}">取消</button>
+                </div>
+            </div>
+        `;
+    },
+    
     // 显示评估表单
     showEvaluationForm(caseId, dimension = 'security') {
         const form = document.getElementById(`eval-form-${caseId}`);
@@ -386,6 +667,30 @@ const Components = {
                     document.getElementById(`eval-accuracy-${caseId}`).value = saved.accuracy || '';
                     document.getElementById(`eval-vague-${caseId}`).value = saved.vague || '';
                     document.getElementById(`eval-detail-${caseId}`).value = saved.detail || '';
+                    document.getElementById(`eval-notes-${caseId}`).value = saved.notes || '';
+                } else if (dimension === 'text') {
+                    document.getElementById(`eval-confidence-${caseId}`).value = saved.confidence || '';
+                    document.getElementById(`eval-accuracy-${caseId}`).value = saved.accuracy || '';
+                    document.getElementById(`eval-complexity-${caseId}`).value = saved.complexity || '';
+                    document.getElementById(`eval-logic-${caseId}`).value = saved.logic || '';
+                    document.getElementById(`eval-notes-${caseId}`).value = saved.notes || '';
+                } else if (dimension === 'politics') {
+                    document.getElementById(`eval-fact-accuracy-${caseId}`).value = saved.factAccuracy || '';
+                    document.getElementById(`eval-source-accuracy-${caseId}`).value = saved.sourceAccuracy || '';
+                    document.getElementById(`eval-neutrality-${caseId}`).value = saved.neutrality || '';
+                    document.getElementById(`eval-depth-${caseId}`).value = saved.depth || '';
+                    document.getElementById(`eval-notes-${caseId}`).value = saved.notes || '';
+                } else if (dimension === 'pun') {
+                    document.getElementById(`eval-recognition-${caseId}`).value = saved.recognition || '';
+                    document.getElementById(`eval-explanation-${caseId}`).value = saved.explanation || '';
+                    document.getElementById(`eval-humor-${caseId}`).value = saved.humor || '';
+                    document.getElementById(`eval-cultural-${caseId}`).value = saved.cultural || '';
+                    document.getElementById(`eval-notes-${caseId}`).value = saved.notes || '';
+                } else if (dimension === 'hallucination') {
+                    document.getElementById(`eval-hallucinated-${caseId}`).value = saved.hallucinated || '';
+                    document.getElementById(`eval-self-correct-${caseId}`).value = saved.selfCorrect || '';
+                    document.getElementById(`eval-severity-${caseId}`).value = saved.severity || '';
+                    document.getElementById(`eval-rigor-${caseId}`).value = saved.rigor || '';
                     document.getElementById(`eval-notes-${caseId}`).value = saved.notes || '';
                 }
             }
@@ -478,6 +783,42 @@ const Components = {
                 accuracy: document.getElementById(`eval-accuracy-${caseId}`)?.value || '',
                 vague: document.getElementById(`eval-vague-${caseId}`)?.value || '',
                 detail: document.getElementById(`eval-detail-${caseId}`)?.value || '',
+                notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
+            };
+        } else if (dimension === 'text') {
+            evaluation = {
+                ...evaluation,
+                confidence: document.getElementById(`eval-confidence-${caseId}`)?.value || '',
+                accuracy: document.getElementById(`eval-accuracy-${caseId}`)?.value || '',
+                complexity: document.getElementById(`eval-complexity-${caseId}`)?.value || '',
+                logic: document.getElementById(`eval-logic-${caseId}`)?.value || '',
+                notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
+            };
+        } else if (dimension === 'politics') {
+            evaluation = {
+                ...evaluation,
+                factAccuracy: document.getElementById(`eval-fact-accuracy-${caseId}`)?.value || '',
+                sourceAccuracy: document.getElementById(`eval-source-accuracy-${caseId}`)?.value || '',
+                neutrality: document.getElementById(`eval-neutrality-${caseId}`)?.value || '',
+                depth: document.getElementById(`eval-depth-${caseId}`)?.value || '',
+                notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
+            };
+        } else if (dimension === 'pun') {
+            evaluation = {
+                ...evaluation,
+                recognition: document.getElementById(`eval-recognition-${caseId}`)?.value || '',
+                explanation: document.getElementById(`eval-explanation-${caseId}`)?.value || '',
+                humor: document.getElementById(`eval-humor-${caseId}`)?.value || '',
+                cultural: document.getElementById(`eval-cultural-${caseId}`)?.value || '',
+                notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
+            };
+        } else if (dimension === 'hallucination') {
+            evaluation = {
+                ...evaluation,
+                hallucinated: document.getElementById(`eval-hallucinated-${caseId}`)?.value || '',
+                selfCorrect: document.getElementById(`eval-self-correct-${caseId}`)?.value || '',
+                severity: document.getElementById(`eval-severity-${caseId}`)?.value || '',
+                rigor: document.getElementById(`eval-rigor-${caseId}`)?.value || '',
                 notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
             };
         }

@@ -1243,6 +1243,17 @@ body::after {
     border: 1px solid var(--border-color);
 }
 
+.evaluation-form .form-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.evaluation-form .form-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 1rem;
+}
+
 .evaluation-form h4 {
     font-size: 0.9rem;
     color: var(--text-primary);
