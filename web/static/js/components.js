@@ -132,6 +132,12 @@ const Components = {
                 <h4>模型回答</h4>
                 <pre>${result.answer}</pre>
             </div>
+            ${result.dimension === 'pun' && result.explain ? `
+                <div class="result-explain" style="margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.1)); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 8px;">
+                    <h4 style="color: #ffc107; margin-bottom: 0.5rem;">💡 参考解释</h4>
+                    <p style="color: var(--text-secondary); line-height: 1.6; margin: 0;">${result.explain}</p>
+                </div>
+            ` : ''}
             ${result.consistency_test ? `
                 <div class="consistency-info" style="margin-top: 1rem; padding: 1rem; background: var(--bg-hover); border-radius: 8px;">
                     <h4>📊 推理一致性测试结果（需人工评估）</h4>

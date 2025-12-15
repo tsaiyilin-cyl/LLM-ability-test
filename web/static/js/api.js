@@ -44,12 +44,33 @@ const API = {
     // 运行单个测试
     async runTest(params) {
         const config = this.getConfig();
-        const response = await fetch('/api/test', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...config, ...params })
-        });
-        return response.json();
+        try {
+            const response = await fetch('/api/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...config, ...params })
+            });
+            
+            // 检查 HTTP 状态码
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                return { 
+                    success: false, 
+                    error: errorData.error || `HTTP 错误: ${response.status} ${response.statusText}` 
+                };
+            }
+            
+            return response.json();
+        } catch (error) {
+            // 网络错误或请求被中断
+            if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                return { 
+                    success: false, 
+                    error: '网络请求失败：请检查服务器是否运行，或者 API 请求超时' 
+                };
+            }
+            return { success: false, error: `请求错误: ${error.message}` };
+        }
     },
     
     // 图片分类测试

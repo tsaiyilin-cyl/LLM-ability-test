@@ -199,28 +199,28 @@ TEST_CASES = {
     },
     "pun": {
         "zh": {
-            "data1": {"question": "在美国的一个动物园中，小男孩惊奇地和他妈妈说'Hey mum,I see an Eel on Musk'，他妈妈说'No indefinite article before a person\\'s name,boy'。请解释这个谐音梗。", "level": "高", "type": "英文谐音"},
-            "data2": {"question": "男孩哭丧着脸跟妈妈说：'我的英语老师总说我顶嘴'，妈妈问：'为什么？'，男孩说：'她问我数学的函数题经常求什么？而我回答Y'。请解释这个谐音梗。", "level": "中", "type": "中英混合"},
-            "data3": {"question": "Shalley和同事说：'我发现五角大楼附近的披萨店可以反应政府是否忙碌'。同事说：'Surely,you can\\'t be serious'，Shalley说：'我没开玩笑'，然后瞪了同事一眼：'还有，我不叫Shirley'。请解释这个谐音梗。", "level": "高", "type": "英文谐音"},
-            "data4": {"question": "大学生甲跟舍友乙说：'我觉得沈从文一定是个很热爱理工科的人'，乙问：'为什么？'甲说：'你不知道他写了本书《边城》吗？'请解释这个谐音梗。", "level": "高", "type": "中文谐音"},
-            "data5": {"question": "A问B：'重庆是不是没啥必吃的小吃呢？'B生气地说：'你凭什么剥夺他们的吃饭权？'请解释这个谐音梗。", "level": "中", "type": "中文谐音"},
-            "data6": {"question": "小明最近迷上了《三国演义》，他很喜欢赵云。小明的奶奶没有看过《三国演义》，她让小明讲《三国演义》里的故事给他听，于是小明兴高采烈地讲起了赵云的故事，并模仿着赵云威武的声音：'我奶常山赵子龙也'。奶奶很惊讶：'宝啊，我可没有打过别人的噢'。请解释这个谐音梗。", "level": "高", "type": "中文谐音"},
-            "data7": {"question": "医生对患者说：'Mercury is in Uranus right now'，患者不解：'我又不信天象的'，医生说：'我也不信天象啊，我意思是体温计裂开了'。请解释这个谐音梗。", "level": "极高", "type": "英文双关"},
-            "data8": {"question": "B向A展示一张照片，A说：'这是你在浴室的照片吗？有点模糊'，B说：'Sorry, I have selfi steam issues'，B说：'哦对不起，我没有攻击你'，A说：'真是莫名其妙'。请解释这个谐音梗。", "level": "高", "type": "英文谐音"},
-            "data9": {"question": "小王和同事小李说：'我第一次登一个英国网站，网站让我接受cookies是什么意思啊？'，小李说：'你瞎说，英国网站不应该用biscuits吗？'请解释这个谐音梗。", "level": "中", "type": "英文文化"},
-            "data10": {"question": "A问B：'TBH和IDK是什么意思？'B回答：'To be honest, I don\\'t know'，A很生气：'那你回答我干嘛？'请解释这个谐音梗。", "level": "低", "type": "英文缩写"},
+            "data1": {"question": "在美国的一个动物园中，小男孩惊奇地和他妈妈说'Hey mum,I see an Eel on Musk'，他妈妈说'No indefinite article before a person\\'s name,boy'。请解释这个谐音梗。", "level": "高", "type": "英文谐音", "explain": "an Eel on Musk表示一只鳗鱼在麝香鹿身上，但是妈妈认为这种情况不会存在，所以下意识听成了Elon Musk（艾伦·马斯克），所以才会说：'宝贝，人名前不加不定冠词'"},
+            "data2": {"question": "男孩哭丧着脸跟妈妈说：'我的英语老师总说我顶嘴'，妈妈问：'为什么？'，男孩说：'她问我数学的函数题经常求什么？而我回答Y'。请解释这个谐音梗。", "level": "中", "type": "中英混合", "explain": "'Y'的发音和'why'一样，会让老师认为是在顶嘴"},
+            "data3": {"question": "Shalley和同事说：'我发现五角大楼附近的披萨店可以反应政府是否忙碌'。同事说：'Surely,you can\\'t be serious'，Shalley说：'我没开玩笑'，然后瞪了同事一眼：'还有，我不叫Shirley'。请解释这个谐音梗。", "level": "高", "type": "英文谐音", "explain": "'Shirley'和'Surely'发音接近，导致Shalley听错"},
+            "data4": {"question": "大学生甲跟舍友乙说：'我觉得沈从文一定是个很热爱理工科的人'，乙问：'为什么？'甲说：'你不知道他写了本书《边城》吗？'请解释这个谐音梗。", "level": "高", "type": "中文谐音", "explain": "'边城'和'编程'发音一样，甲误认为沈从文'热爱理工科'"},
+            "data5": {"question": "A问B：'重庆是不是没啥必吃的小吃呢？'B生气地说：'你凭什么剥夺他们的吃饭权？'请解释这个谐音梗。", "level": "中", "type": "中文谐音", "explain": "断句断错了，把'啥必'听成了'傻B'"},
+            "data6": {"question": "小明最近迷上了《三国演义》，他很喜欢赵云。小明的奶奶没有看过《三国演义》，她让小明讲《三国演义》里的故事给他听，于是小明兴高采烈地讲起了赵云的故事，并模仿着赵云威武的声音：'我奶常山赵子龙也'。奶奶很惊讶：'宝啊，我可没有打过别人的噢'。请解释这个谐音梗。", "level": "高", "type": "中文谐音", "explain": "'我乃常山赵子龙'同音于'我奶常扇赵子龙'，让奶奶惊讶'我没打过人'"},
+            "data7": {"question": "医生对患者说：'Mercury is in Uranus right now'，患者不解：'我又不信天象的'，医生说：'我也不信天象啊，我意思是体温计裂开了'。请解释这个谐音梗。", "level": "极高", "type": "英文双关", "explain": "Mercury有'水星'、'水银'两个意思，Uranus有天王星的意思，所以患者理解水星在天王星正位，实则医生的意思是'Mercury is in your anus'：水银掉在你的肛门里了（体温计裂开）"},
+            "data8": {"question": "B向A展示一张照片，A说：'这是你在浴室的照片吗？有点模糊'，B说：'Sorry, I have selfi steam issues'，B说：'哦对不起，我没有攻击你'，A说：'真是莫名其妙'。请解释这个谐音梗。", "level": "高", "type": "英文谐音", "explain": "selfie steam issues意为拍的自拍有蒸汽，但是连读同音于'self esteem issues'自尊心受打击，所以B道歉，A觉得莫名其妙"},
+            "data9": {"question": "小王和同事小李说：'我第一次登一个英国网站，网站让我接受cookies是什么意思啊？'，小李说：'你瞎说，英国网站不应该用biscuits吗？'请解释这个谐音梗。", "level": "中", "type": "英文文化", "explain": "这不是谐音梗，而是文化梗。cookies在美式英语中指饼干，biscuits在英式英语中指饼干，小李开玩笑说英国网站应该用英式说法"},
+            "data10": {"question": "A问B：'TBH和IDK是什么意思？'B回答：'To be honest, I don\\'t know'，A很生气：'那你回答我干嘛？'请解释这个谐音梗。", "level": "低", "type": "英文缩写", "explain": "这不是谐音梗。TBH = To Be Honest，IDK = I Don't Know，B其实正确回答了问题，但A误以为B不知道答案"},
         },
         "en": {
-            "data1": {"question": "At a zoo in the United States, the little boy said 'Hey mum, I see an Eel on Musk' to his mother in surprise, and his mother said 'No indefinite article before a person's name, boy'. Please explain this pun.", "level": "High", "type": "English Pun"},
-            "data2": {"question": "The boy said tearfully to his mother, 'My English teacher always says I talk back.' The mother asked, 'What?' The boy replied, 'She asked me what math function problems often solve for, and I answered Y.' Please explain this pun.", "level": "Medium", "type": "Chinese-English Mix"},
-            "data3": {"question": "Shalley said to his colleague, 'I've noticed that the pizza places near the Pentagon can indicate how busy the government is.' His colleague replied, 'Surely, you can't be serious.' Shalley said, 'I am serious,' then glared at his colleague and added, 'And don't call me Shirley.' Please explain this pun.", "level": "High", "type": "English Pun"},
-            "data4": {"question": "Student A said to his roommate B, 'I think Shen Congwen must have been really passionate about science and engineering.' B asked, 'Why?' A replied, 'Don't you know he wrote a book called Border Town?' Please explain this pun.", "level": "High", "type": "Chinese Pun"},
-            "data5": {"question": "A asked B, 'Does Chongqing not have any must-eat snacks?' B angrily said, 'How can you deprive them of their right to eat?' Please explain this pun.", "level": "Medium", "type": "Chinese Pun"},
-            "data6": {"question": "Xiao Ming said in Zhao Yun's majestic voice: 'I am Zhao Zilong of Changshan!' His grandmother was surprised: 'Dear, I have never hit anyone!' Please explain this pun.", "level": "High", "type": "Chinese Pun"},
-            "data7": {"question": "Doctor said to the patient, 'Mercury is in Uranus right now.' The patient, confused, said, 'I don't believe in astrology.' Doctor said, 'I don't believe in astrology either; I meant the thermometer is broken.' Please explain this pun.", "level": "Critical", "type": "English Double Meaning"},
-            "data8": {"question": "B showed A a photo. A said, 'Is this your photo in the bathroom? It's a bit blurry.' B said, 'Sorry, I have selfie steam issues.' Then B said, 'Oh sorry, I didn't mean to attack you.' A said, 'That's nonsense.' Please explain this pun.", "level": "High", "type": "English Pun"},
-            "data9": {"question": "Xiao Wang said to his colleague Xiao Li, 'The first time I visited a British website, it asked me to accept cookies. What does that mean?' Xiao Li replied, 'You're kidding. Shouldn't British websites use biscuits?' Please explain this pun.", "level": "Medium", "type": "English Culture"},
-            "data10": {"question": "A asked B, 'What do TBH and IDK mean?' B replied, 'To be honest, I don't know.' A got angry and said, 'Then why did you answer me?' Please explain this pun.", "level": "Low", "type": "English Abbreviation"},
+            "data1": {"question": "At a zoo in the United States, the little boy said 'Hey mum, I see an Eel on Musk' to his mother in surprise, and his mother said 'No indefinite article before a person's name, boy'. Please explain this pun.", "level": "High", "type": "English Pun", "explain": "'an Eel on Musk' sounds like 'Elon Musk'. The mom heard it as the famous person's name, hence correcting the grammar about indefinite articles before names."},
+            "data2": {"question": "The boy said tearfully to his mother, 'My English teacher always says I talk back.' The mother asked, 'What?' The boy replied, 'She asked me what math function problems often solve for, and I answered Y.' Please explain this pun.", "level": "Medium", "type": "Chinese-English Mix", "explain": "'Y' sounds like 'why', making the teacher think the boy was talking back."},
+            "data3": {"question": "Shalley said to his colleague, 'I've noticed that the pizza places near the Pentagon can indicate how busy the government is.' His colleague replied, 'Surely, you can't be serious.' Shalley said, 'I am serious,' then glared at his colleague and added, 'And don't call me Shirley.' Please explain this pun.", "level": "High", "type": "English Pun", "explain": "'Surely' sounds like 'Shirley', causing Shalley to mishear. This is a reference to the classic movie 'Airplane!'"},
+            "data4": {"question": "Student A said to his roommate B, 'I think Shen Congwen must have been really passionate about science and engineering.' B asked, 'Why?' A replied, 'Don't you know he wrote a book called Border Town?' Please explain this pun.", "level": "High", "type": "Chinese Pun", "explain": "In Chinese, '边城' (Border Town) sounds like '编程' (programming), leading A to jokingly assume Shen Congwen loved STEM."},
+            "data5": {"question": "A asked B, 'Does Chongqing not have any must-eat snacks?' B angrily said, 'How can you deprive them of their right to eat?' Please explain this pun.", "level": "Medium", "type": "Chinese Pun", "explain": "In Chinese, '啥必' (what must) sounds like '傻B' (a swear word), causing B to misunderstand."},
+            "data6": {"question": "Xiao Ming said in Zhao Yun's majestic voice: 'I am Zhao Zilong of Changshan!' His grandmother was surprised: 'Dear, I have never hit anyone!' Please explain this pun.", "level": "High", "type": "Chinese Pun", "explain": "'我乃常山赵子龙' (I am Zhao Zilong of Changshan) sounds like '我奶常扇赵子龙' (My grandma often slaps Zhao Zilong)."},
+            "data7": {"question": "Doctor said to the patient, 'Mercury is in Uranus right now.' The patient, confused, said, 'I don't believe in astrology.' Doctor said, 'I don't believe in astrology either; I meant the thermometer is broken.' Please explain this pun.", "level": "Critical", "type": "English Double Meaning", "explain": "Mercury = planet/liquid metal, Uranus = planet but sounds like 'your anus'. Doctor meant 'mercury is in your anus' (thermometer broke)."},
+            "data8": {"question": "B showed A a photo. A said, 'Is this your photo in the bathroom? It's a bit blurry.' B said, 'Sorry, I have selfie steam issues.' Then B said, 'Oh sorry, I didn't mean to attack you.' A said, 'That's nonsense.' Please explain this pun.", "level": "High", "type": "English Pun", "explain": "'selfie steam issues' sounds like 'self-esteem issues' when spoken quickly, causing the confusion."},
+            "data9": {"question": "Xiao Wang said to his colleague Xiao Li, 'The first time I visited a British website, it asked me to accept cookies. What does that mean?' Xiao Li replied, 'You're kidding. Shouldn't British websites use biscuits?' Please explain this pun.", "level": "Medium", "type": "English Culture", "explain": "Not a homophone pun but a cultural joke. 'Cookies' is American English for biscuits, while 'biscuits' is British English."},
+            "data10": {"question": "A asked B, 'What do TBH and IDK mean?' B replied, 'To be honest, I don't know.' A got angry and said, 'Then why did you answer me?' Please explain this pun.", "level": "Low", "type": "English Abbreviation", "explain": "Not a homophone pun. TBH = To Be Honest, IDK = I Don't Know. B actually answered correctly, but A misunderstood."},
         }
     },
     "hallucination": {
@@ -266,11 +266,39 @@ DEFAULT_PROMPTS = {
     "text": {
         "zh": {
             "sys": "你是一个乐于助人的AI助手，请尽可能帮助用户解决问题。在输出结果之前你首先需要一步一步的输出推理过程。",
-            "user": "你需要帮助用户进行文本的分类，对于给定的输入，你需要输出一个分类n*m的矩阵。\n{question}\n\n输出格式为：\n1.推理过程\n{{在这里输出你判断的理由}}\n2.答案\n{{在这里输出分类矩阵}}"
+            "user": """你需要帮助用户进行文本的分类，对于给定的输入，你需要输出一个分类n*m的矩阵。行代表输入的实体个数，列代表你分类的种类。a_{ij}代表对第i个实体，你有a_{ij}的置信度（把握）认为其属于第j类。
+输入是：{question}
+
+输出格式为，严格按照格式输出：
+1.推理过程
+{{在这里输出你判断的理由}}
+2.答案
+{{在这里输出分类矩阵}}
+
+例如，对于输入"猫 虎 狼 狗"，分类矩阵为:
+        猫科    犬科    熊科
+猫      0.92    0.05    0.03
+虎      0.90    0.06    0.04
+狼      0.08    0.85    0.07
+狗      0.07    0.88    0.05"""
         },
         "en": {
             "sys": "You are a helpful AI assistant. Please help users solve their problems as much as possible. Before outputting the result, you need to output the reasoning process step by step.",
-            "user": "You need to help the user classify text. For a given input, output an n*m classification matrix.\n{question}\n\nOutput format:\n1.Reasoning\n{{Insert your reasoning here}}\n2.Answer\n{{Insert classification matrix here}}"
+            "user": """You need to help the user classify text. For a given input, you need to output an n*m classification matrix. Rows represent the number of input entities, columns represent the categories. a_{ij} represents your confidence level that entity i belongs to category j.
+Input: {question}
+
+Output format (strictly follow):
+1.Reasoning
+{{Insert your reasoning here}}
+2.Answer
+{{Insert classification matrix here}}
+
+For example, for input "Cat Tiger Wolf Dog", the classification matrix is:
+        Feline  Canine  Ursine
+Cat     0.92    0.05    0.03
+Tiger   0.90    0.06    0.04
+Wolf    0.08    0.85    0.07
+Dog     0.07    0.88    0.05"""
         }
     },
     "politics": {
@@ -524,6 +552,11 @@ def test_connection():
 def run_test():
     """运行单个测试"""
     data = request.json
+    
+    # 检查请求数据是否有效
+    if data is None:
+        return jsonify({"success": False, "error": "请求数据无效，请确保发送了正确的 JSON 格式"}), 400
+    
     dimension = data.get('dimension', 'security')
     model = data.get('model', 'gpt-4')
     case_id = data.get('case_id', 'data1')
@@ -620,11 +653,9 @@ def run_test():
                 return jsonify({"success": False, "error": "图片文件不存在"})
             
             # 构建用户消息（包含图片）
-            # 如果 user_template 包含 {question}，替换为图片名称；否则直接使用模板
-            if '{question}' in user_template:
-                user_prompt = user_template.replace('{question}', test_case.get('name', ''))
-            else:
-                user_prompt = user_template
+            # 替换占位符（支持 {question} 和 {input} 两种格式）
+            user_prompt = user_template.replace('{question}', test_case.get('name', ''))
+            user_prompt = user_prompt.replace('{input}', test_case.get('name', ''))
             messages.append({
                 "role": "user",
                 "content": [
@@ -636,8 +667,9 @@ def run_test():
                 ]
             })
         else:
-            # 文本测试：替换问题占位符
+            # 文本测试：替换问题占位符（支持 {question} 和 {input} 两种格式）
             user_prompt = user_template.replace('{question}', test_case.get('question', ''))
+            user_prompt = user_prompt.replace('{input}', test_case.get('question', ''))
             messages.append({"role": "user", "content": user_prompt})
         
         # 构建请求参数
@@ -674,7 +706,13 @@ def run_test():
                     response = client.chat.completions.create(**context_request_params)
                     single_end = time.time()
                     
-                    answer = response.choices[0].message.content
+                    # 安全地获取响应内容
+                    if response is None or not hasattr(response, 'choices') or response.choices is None or len(response.choices) == 0:
+                        return jsonify({"success": False, "error": f"第 {i+1} 次询问: API 响应中没有 choices 数据"}), 500
+                    if response.choices[0].message is None:
+                        return jsonify({"success": False, "error": f"第 {i+1} 次询问: API 响应中没有 message 数据"}), 500
+                    
+                    answer = response.choices[0].message.content or ''
                     answers.append(answer)
                     response_times.append(round(single_end - single_start, 2))
                     
@@ -725,8 +763,67 @@ def run_test():
                 "response_times": response_times  # 每次的响应时间
             }
         else:
-            # 单次询问（原有逻辑）
-            response = client.chat.completions.create(**request_params)
+            # 单次询问（带重试机制）
+            max_retries = 5  # 增加重试次数
+            retry_delay = 2  # 初始延迟秒数
+            last_error = None
+            response = None
+            
+            for attempt in range(max_retries):
+                try:
+                    response = client.chat.completions.create(**request_params)
+                    
+                    # 检查响应是否有效
+                    if response is None:
+                        last_error = "API 返回了空响应"
+                        if attempt < max_retries - 1:
+                            delay = retry_delay * (attempt + 1)
+                            print(f"[重试 {attempt + 1}/{max_retries}] 空响应，{delay}秒后重试...")
+                            time.sleep(delay)
+                            continue
+                    elif not hasattr(response, 'choices') or response.choices is None or len(response.choices) == 0:
+                        last_error = f"API 返回空 choices（第 {attempt + 1} 次尝试）"
+                        if attempt < max_retries - 1:
+                            delay = retry_delay * (attempt + 1)
+                            print(f"[重试 {attempt + 1}/{max_retries}] 空 choices，{delay}秒后重试...")
+                            time.sleep(delay)
+                            continue
+                    elif response.choices[0].message is None:
+                        last_error = "API 响应中没有 message 数据"
+                        if attempt < max_retries - 1:
+                            delay = retry_delay * (attempt + 1)
+                            print(f"[重试 {attempt + 1}/{max_retries}] 空 message，{delay}秒后重试...")
+                            time.sleep(delay)
+                            continue
+                    elif not response.choices[0].message.content or response.choices[0].message.content.strip() == '':
+                        last_error = "API 返回了空内容"
+                        if attempt < max_retries - 1:
+                            delay = retry_delay * (attempt + 1)
+                            print(f"[重试 {attempt + 1}/{max_retries}] 空内容，{delay}秒后重试...")
+                            time.sleep(delay)
+                            continue
+                    else:
+                        # 响应有效，跳出重试循环
+                        if attempt > 0:
+                            print(f"[成功] 第 {attempt + 1} 次尝试成功")
+                        break
+                except Exception as e:
+                    last_error = str(e)
+                    if attempt < max_retries - 1:
+                        delay = retry_delay * (attempt + 1)
+                        print(f"[重试 {attempt + 1}/{max_retries}] 异常: {last_error}，{delay}秒后重试...")
+                        time.sleep(delay)
+                        continue
+                    else:
+                        return jsonify({"success": False, "error": f"重试 {max_retries} 次后仍失败: {last_error}"}), 500
+            
+            # 最终检查
+            if response is None or not hasattr(response, 'choices') or response.choices is None or len(response.choices) == 0:
+                return jsonify({"success": False, "error": f"重试 {max_retries} 次后仍失败: {last_error}"}), 500
+            if response.choices[0].message is None:
+                return jsonify({"success": False, "error": f"重试 {max_retries} 次后仍失败: {last_error}"}), 500
+            if not response.choices[0].message.content or response.choices[0].message.content.strip() == '':
+                return jsonify({"success": False, "error": f"重试 {max_retries} 次后仍失败: {last_error or 'API 返回了空内容'}"}), 500
             
             end_time = time.time()
             response_time = round(end_time - start_time, 2)
@@ -742,6 +839,12 @@ def run_test():
                 "answer": answer,
                 "response_time": response_time
             }
+        
+        # 如果是谐音梗，添加参考解释
+        if dimension == 'pun':
+            explain = test_case.get('explain', '')
+            if explain:
+                result["explain"] = explain
         
         # 如果是图片分类，添加图片 URL
         if dimension == 'image':
@@ -804,7 +907,16 @@ def classify_image():
         
         end_time = time.time()
         response_time = round(end_time - start_time, 2)
-        answer = response.choices[0].message.content
+        
+        # 安全地获取响应内容
+        if response is None:
+            return jsonify({"success": False, "error": "API 返回了空响应"}), 500
+        if not hasattr(response, 'choices') or response.choices is None or len(response.choices) == 0:
+            return jsonify({"success": False, "error": "API 响应中没有 choices 数据"}), 500
+        if response.choices[0].message is None:
+            return jsonify({"success": False, "error": "API 响应中没有 message 数据"}), 500
+        
+        answer = response.choices[0].message.content or ''
         
         return jsonify({
             "success": True,
