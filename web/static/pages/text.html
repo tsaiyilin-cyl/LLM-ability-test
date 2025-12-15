@@ -116,7 +116,10 @@
 
         <!-- 测试用例 -->
         <section class="card">
-            <h3 class="mb-1">📋 文本分类测试用例</h3>
+            <div class="card-header">
+                <h3 class="mb-0">📋 文本分类测试用例</h3>
+                <button class="btn btn-secondary btn-sm" onclick="App.clearAllData()">🗑️ 清除历史数据</button>
+            </div>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
                 测试模型对不同类别文本的分类能力，包括学科分类、商品分类、地理分类等
             </p>

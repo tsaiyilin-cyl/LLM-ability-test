@@ -153,7 +153,10 @@
 
         <!-- 预设测试图片 -->
         <section class="card">
-            <h3 class="mb-1">🖼️ 预设测试图片</h3>
+            <div class="card-header">
+                <h3 class="mb-0">🖼️ 预设测试图片</h3>
+                <button class="btn btn-secondary btn-sm" onclick="App.clearAllData()">🗑️ 清除历史数据</button>
+            </div>
             <p class="preset-hint">勾选图片进行批量测试，或点击图片进行单图测试</p>
             <div class="test-grid" id="testCasesGrid">
                 <!-- 图片列表将在这里加载 -->

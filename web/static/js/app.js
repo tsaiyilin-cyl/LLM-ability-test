@@ -423,6 +423,38 @@ const App = {
         Components.toast('✅ 结果已清空，评估数据已清除', 'success');
     },
     
+    // 清除所有历史数据（始终可用）
+    clearAllData() {
+        if (!confirm('确定要清除所有历史评估数据吗？此操作不可恢复。')) {
+            return;
+        }
+        
+        // 清除所有以eval_开头的localStorage项
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('eval_')) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        // 清空当前测试结果
+        this.state.testResults = [];
+        
+        // 清空DOM容器
+        const container = document.getElementById('resultsContainer');
+        if (container) container.innerHTML = '';
+        
+        // 隐藏结果区域
+        Components.toggle('resultsSection', false);
+        
+        // 更新统计信息
+        this.updateStats();
+        
+        Components.toast('✅ 所有历史数据已清除', 'success');
+    },
+    
     // 更新模型显示
     updateModelDisplay() {
         const modelDisplay = document.getElementById('modelDisplay');
