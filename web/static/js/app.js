@@ -82,7 +82,49 @@ const App = {
         await this.initModelSelect(); // 初始化模型选择器
         this.loadPrompts();
         this.loadTestCases();
+        this.loadTestResults(); // 加载已保存的测试结果
         this.bindEvents();
+    },
+    
+    // 保存测试结果到 localStorage
+    saveTestResults() {
+        const key = `test_results_${this.state.currentDimension}`;
+        localStorage.setItem(key, JSON.stringify(this.state.testResults));
+    },
+    
+    // 从 localStorage 加载测试结果
+    loadTestResults() {
+        const key = `test_results_${this.state.currentDimension}`;
+        const saved = localStorage.getItem(key);
+        if (saved) {
+            try {
+                this.state.testResults = JSON.parse(saved);
+                // 恢复显示测试结果
+                this.renderTestResults();
+                this.updateStats();
+            } catch (error) {
+                console.error('Failed to load test results:', error);
+                this.state.testResults = [];
+            }
+        }
+    },
+    
+    // 渲染已保存的测试结果
+    renderTestResults() {
+        const container = document.getElementById('resultsContainer');
+        if (!container || this.state.testResults.length === 0) return;
+        
+        // 显示结果区域
+        Components.toggle('resultsSection', true);
+        
+        // 清空容器
+        container.innerHTML = '';
+        
+        // 渲染每个测试结果
+        this.state.testResults.forEach(result => {
+            const card = Components.createResultCard(result);
+            container.appendChild(card);
+        });
     },
     
     // 加载 API 配置
@@ -350,6 +392,8 @@ const App = {
                             result.case_id_display = `${caseId} (${testLang === 'zh' ? '中文' : 'EN'})`;
                         }
                         this.state.testResults.push(result);
+                        // 保存到 localStorage
+                        this.saveTestResults();
                         const card = Components.createResultCard(result);
                         container?.appendChild(card);
                         this.updateStats();
@@ -413,6 +457,10 @@ const App = {
         // 清空测试结果数组
         this.state.testResults = [];
         
+        // 清除 localStorage 中的测试结果
+        const key = `test_results_${this.state.currentDimension}`;
+        localStorage.removeItem(key);
+        
         // 清空DOM容器
         const container = document.getElementById('resultsContainer');
         if (container) container.innerHTML = '';
@@ -438,6 +486,16 @@ const App = {
             }
         }
         keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        // 清除所有测试结果（所有维度）
+        const testResultKeys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('test_results_')) {
+                testResultKeys.push(key);
+            }
+        }
+        testResultKeys.forEach(key => localStorage.removeItem(key));
         
         // 清空当前测试结果
         this.state.testResults = [];
@@ -681,8 +739,16 @@ const App = {
             });
             if (result) {
                 result.evaluation = status;
+                // 保存更新后的测试结果
+                this.saveTestResults();
                 this.updateStats();
             }
+        });
+        
+        // 评估保存事件
+        document.addEventListener('evaluationSaved', () => {
+            // 评估保存后，更新测试结果的保存
+            this.saveTestResults();
         });
     }
 };

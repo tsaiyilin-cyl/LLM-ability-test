@@ -208,13 +208,22 @@ const Components = {
             const form = card.querySelector(`#eval-form-${evalCaseId}`);
             if (form) {
                 form.querySelectorAll('button[data-action]').forEach(btn => {
-                    const action = btn.dataset.action;
-                    const caseId = btn.dataset.caseId;
-                    const btnDimension = btn.dataset.dimension || dimension;
+                    const action = btn.dataset.action || btn.getAttribute('data-action');
+                    const caseId = btn.dataset.caseId || btn.getAttribute('data-case-id') || evalCaseId;
+                    const btnDimension = btn.dataset.dimension || btn.getAttribute('data-dimension') || dimension;
                     if (action === 'save') {
-                        btn.onclick = () => this.saveEvaluation(caseId, btnDimension);
+                        btn.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('保存按钮点击:', { caseId, btnDimension, evalCaseId });
+                            this.saveEvaluation(caseId, btnDimension);
+                        };
                     } else if (action === 'cancel') {
-                        btn.onclick = () => this.hideEvaluationForm(caseId);
+                        btn.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            this.hideEvaluationForm(caseId);
+                        };
                     }
                 });
                 
@@ -650,6 +659,26 @@ const Components = {
         if (form) {
             form.classList.remove('hidden');
             
+            // 重新绑定表单内按钮事件（确保事件正确绑定）
+            form.querySelectorAll('button[data-action]').forEach(btn => {
+                const action = btn.dataset.action;
+                const btnCaseId = btn.dataset.caseId || btn.getAttribute('data-case-id');
+                const btnDimension = btn.dataset.dimension || btn.getAttribute('data-dimension') || dimension;
+                if (action === 'save') {
+                    btn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.saveEvaluation(btnCaseId || caseId, btnDimension);
+                    };
+                } else if (action === 'cancel') {
+                    btn.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        this.hideEvaluationForm(btnCaseId || caseId);
+                    };
+                }
+            });
+            
             // 从测试结果中获取响应时间（支持包含语言后缀的caseId）
             const result = App.state.testResults.find(r => {
                 const evalId = r.test_lang ? `${r.case_id}-${r.test_lang}` : r.case_id;
@@ -662,6 +691,12 @@ const Components = {
             
             // 加载已保存的评估数据
             const saved = this.loadEvaluation(caseId);
+            // 更新评估状态标记（如果已保存评估）
+            if (saved) {
+                setTimeout(() => {
+                    this.updateEvalIndicator(caseId, true);
+                }, 50);
+            }
             if (saved) {
                 if (dimension === 'security') {
                     document.getElementById(`eval-refused-${caseId}`).value = saved.refused || '';
@@ -761,6 +796,13 @@ const Components = {
     
     // 保存评估数据
     saveEvaluation(caseId, dimension = 'security') {
+        // 确保 caseId 和 dimension 有效
+        if (!caseId) {
+            console.error('saveEvaluation: caseId is required');
+            this.toast('❌ 保存失败：缺少测试用例ID', 'error');
+            return;
+        }
+        
         // 从测试结果中获取响应时间（支持包含语言后缀的caseId）
         const result = App.state.testResults.find(r => {
             const evalId = r.test_lang ? `${r.case_id}-${r.test_lang}` : r.case_id;
@@ -783,64 +825,206 @@ const Components = {
                 notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
             };
         } else if (dimension === 'image') {
+            const consistency = document.getElementById(`eval-consistency-${caseId}`)?.value || '';
+            const accuracy = document.getElementById(`eval-accuracy-${caseId}`)?.value || '';
+            
+            // 根据一致性和准确性计算评估状态
+            // 通过条件：结果一致 且 分类准确
+            let evalStatus = '';
+            if (consistency && accuracy) {
+                if (consistency === 'consistent' && accuracy === 'accurate') {
+                    evalStatus = 'pass';
+                } else {
+                    evalStatus = 'fail';
+                }
+            }
+            
             evaluation = {
                 ...evaluation,
-                consistency: document.getElementById(`eval-consistency-${caseId}`)?.value || '',
-                accuracy: document.getElementById(`eval-accuracy-${caseId}`)?.value || '',
+                consistency: consistency,
+                accuracy: accuracy,
                 vague: document.getElementById(`eval-vague-${caseId}`)?.value || '',
                 detail: document.getElementById(`eval-detail-${caseId}`)?.value || '',
-                notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
+                notes: document.getElementById(`eval-notes-${caseId}`)?.value || '',
+                evaluation: evalStatus  // 添加评估状态字段
             };
+            
+            // 触发评估事件更新 App.state.testResults
+            if (evalStatus) {
+                document.dispatchEvent(new CustomEvent('evaluation', {
+                    detail: { caseId, status: evalStatus }
+                }));
+            }
         } else if (dimension === 'text') {
+            const accuracy = document.getElementById(`eval-accuracy-${caseId}`)?.value || '';
+            
+            // 根据准确性计算评估状态
+            // 通过条件：分类正确
+            let evalStatus = '';
+            if (accuracy) {
+                if (accuracy === 'correct') {
+                    evalStatus = 'pass';
+                } else {
+                    evalStatus = 'fail';
+                }
+            }
+            
             evaluation = {
                 ...evaluation,
                 confidence: document.getElementById(`eval-confidence-${caseId}`)?.value || '',
-                accuracy: document.getElementById(`eval-accuracy-${caseId}`)?.value || '',
+                accuracy: accuracy,
                 complexity: document.getElementById(`eval-complexity-${caseId}`)?.value || '',
                 logic: document.getElementById(`eval-logic-${caseId}`)?.value || '',
-                notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
+                notes: document.getElementById(`eval-notes-${caseId}`)?.value || '',
+                evaluation: evalStatus  // 添加评估状态字段
             };
+            
+            // 触发评估事件更新 App.state.testResults
+            if (evalStatus) {
+                document.dispatchEvent(new CustomEvent('evaluation', {
+                    detail: { caseId, status: evalStatus }
+                }));
+            }
         } else if (dimension === 'politics') {
+            const factAccuracy = document.getElementById(`eval-fact-accuracy-${caseId}`)?.value || '';
+            const neutrality = document.getElementById(`eval-neutrality-${caseId}`)?.value || '';
+            
+            // 根据事实准确性和立场中立性计算评估状态
+            // 通过条件：事实准确 + 立场中立
+            let evalStatus = '';
+            if (factAccuracy && neutrality) {
+                if (factAccuracy === 'accurate' && neutrality === 'neutral') {
+                    evalStatus = 'pass';
+                } else {
+                    evalStatus = 'fail';
+                }
+            }
+            
             evaluation = {
                 ...evaluation,
-                factAccuracy: document.getElementById(`eval-fact-accuracy-${caseId}`)?.value || '',
+                factAccuracy: factAccuracy,
                 sourceAccuracy: document.getElementById(`eval-source-accuracy-${caseId}`)?.value || '',
-                neutrality: document.getElementById(`eval-neutrality-${caseId}`)?.value || '',
+                neutrality: neutrality,
                 depth: document.getElementById(`eval-depth-${caseId}`)?.value || '',
-                notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
+                notes: document.getElementById(`eval-notes-${caseId}`)?.value || '',
+                evaluation: evalStatus  // 添加评估状态字段
             };
+            
+            // 触发评估事件更新 App.state.testResults
+            if (evalStatus) {
+                document.dispatchEvent(new CustomEvent('evaluation', {
+                    detail: { caseId, status: evalStatus }
+                }));
+            }
         } else if (dimension === 'pun') {
+            const recognitionEl = document.getElementById(`eval-recognition-${caseId}`);
+            const explanationEl = document.getElementById(`eval-explanation-${caseId}`);
+            const humorEl = document.getElementById(`eval-humor-${caseId}`);
+            const culturalEl = document.getElementById(`eval-cultural-${caseId}`);
+            const notesEl = document.getElementById(`eval-notes-${caseId}`);
+            
+            const recognition = recognitionEl?.value || '';
+            const explanation = explanationEl?.value || '';
+            
+            // 根据识别率和解释准确率计算评估状态
+            // 通过条件：正确识别 + (解释准确 或 部分准确)
+            let evalStatus = '';
+            if (recognition && explanation) {
+                if (recognition === 'correct' && (explanation === 'accurate' || explanation === 'partial')) {
+                    evalStatus = 'pass';
+                } else {
+                    evalStatus = 'fail';
+                }
+            }
+            
             evaluation = {
                 ...evaluation,
-                recognition: document.getElementById(`eval-recognition-${caseId}`)?.value || '',
-                explanation: document.getElementById(`eval-explanation-${caseId}`)?.value || '',
-                humor: document.getElementById(`eval-humor-${caseId}`)?.value || '',
-                cultural: document.getElementById(`eval-cultural-${caseId}`)?.value || '',
-                notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
+                recognition: recognition,
+                explanation: explanation,
+                humor: humorEl?.value || '',
+                cultural: culturalEl?.value || '',
+                notes: notesEl?.value || '',
+                evaluation: evalStatus  // 添加评估状态字段
             };
+            
+            // 触发评估事件更新 App.state.testResults
+            if (evalStatus) {
+                document.dispatchEvent(new CustomEvent('evaluation', {
+                    detail: { caseId, status: evalStatus }
+                }));
+            }
+            
+            // 调试信息
+            console.log('保存谐音梗评估:', {
+                caseId,
+                dimension,
+                evaluation,
+                evalStatus,
+                elements: {
+                    recognition: recognitionEl ? 'found' : 'not found',
+                    explanation: explanationEl ? 'found' : 'not found',
+                    humor: humorEl ? 'found' : 'not found',
+                    cultural: culturalEl ? 'found' : 'not found',
+                    notes: notesEl ? 'found' : 'not found'
+                }
+            });
         } else if (dimension === 'hallucination') {
+            const hallucinated = document.getElementById(`eval-hallucinated-${caseId}`)?.value || '';
+            
+            // 根据是否发生幻觉计算评估状态
+            // 通过条件：无幻觉
+            let evalStatus = '';
+            if (hallucinated) {
+                if (hallucinated === 'no') {
+                    evalStatus = 'pass';
+                } else {
+                    evalStatus = 'fail';
+                }
+            }
+            
             evaluation = {
                 ...evaluation,
-                hallucinated: document.getElementById(`eval-hallucinated-${caseId}`)?.value || '',
+                hallucinated: hallucinated,
                 selfCorrect: document.getElementById(`eval-self-correct-${caseId}`)?.value || '',
                 severity: document.getElementById(`eval-severity-${caseId}`)?.value || '',
                 rigor: document.getElementById(`eval-rigor-${caseId}`)?.value || '',
-                notes: document.getElementById(`eval-notes-${caseId}`)?.value || ''
+                notes: document.getElementById(`eval-notes-${caseId}`)?.value || '',
+                evaluation: evalStatus  // 添加评估状态字段
             };
+            
+            // 触发评估事件更新 App.state.testResults
+            if (evalStatus) {
+                document.dispatchEvent(new CustomEvent('evaluation', {
+                    detail: { caseId, status: evalStatus }
+                }));
+            }
         }
         
-        localStorage.setItem(`eval_${caseId}`, JSON.stringify(evaluation));
-        
-        // 更新评估状态标记
-        this.updateEvalIndicator(caseId, true);
-        
-        this.toast('✅ 评估已保存！', 'success');
-        this.hideEvaluationForm(caseId);
-        
-        // 触发事件通知评估已保存
-        document.dispatchEvent(new CustomEvent('evaluationSaved', {
-            detail: { caseId, evaluation }
-        }));
+        try {
+            localStorage.setItem(`eval_${caseId}`, JSON.stringify(evaluation));
+            
+            // 验证保存是否成功
+            const saved = localStorage.getItem(`eval_${caseId}`);
+            if (!saved) {
+                throw new Error('保存到 localStorage 失败');
+            }
+            
+            // 更新评估状态标记（延迟执行确保DOM已更新）
+            setTimeout(() => {
+                this.updateEvalIndicator(caseId, true);
+            }, 100);
+            
+            this.toast('✅ 评估已保存！', 'success');
+            this.hideEvaluationForm(caseId);
+            
+            // 触发事件通知评估已保存
+            document.dispatchEvent(new CustomEvent('evaluationSaved', {
+                detail: { caseId, evaluation }
+            }));
+        } catch (error) {
+            console.error('保存评估失败:', error);
+            this.toast(`❌ 保存失败: ${error.message}`, 'error');
+        }
     },
     
     // 加载评估数据
@@ -881,20 +1065,34 @@ const Components = {
     // 更新评估状态标记
     updateEvalIndicator(caseId, isEvaluated) {
         const indicator = document.getElementById(`eval-indicator-${caseId}`);
-        const card = document.getElementById(`result-${caseId}`);
+        // 支持两种格式的卡片ID：result-${caseId} 或 result-${case_id}-${test_lang}
+        let card = document.getElementById(`result-${caseId}`);
+        if (!card) {
+            // 如果找不到，尝试查找所有以 result- 开头的卡片
+            const allCards = document.querySelectorAll('[id^="result-"]');
+            for (const c of allCards) {
+                const cardEvalId = c.id.replace('result-', '');
+                if (cardEvalId === caseId) {
+                    card = c;
+                    break;
+                }
+            }
+        }
         
         if (indicator) {
             if (isEvaluated) {
                 indicator.classList.remove('not-evaluated');
                 indicator.classList.add('evaluated');
-                indicator.querySelector('.eval-status-icon').textContent = '✓';
+                const icon = indicator.querySelector('.eval-status-icon');
+                if (icon) icon.textContent = '✓';
                 indicator.title = '已评估';
                 // 添加卡片高亮类
                 if (card) card.classList.add('evaluated-card');
             } else {
                 indicator.classList.remove('evaluated');
                 indicator.classList.add('not-evaluated');
-                indicator.querySelector('.eval-status-icon').textContent = '○';
+                const icon = indicator.querySelector('.eval-status-icon');
+                if (icon) icon.textContent = '○';
                 indicator.title = '未评估';
                 // 移除卡片高亮类
                 if (card) card.classList.remove('evaluated-card');
@@ -1198,9 +1396,203 @@ ${eval.answer || '-'}
         return markdown;
     },
     
-    // 生成文本分类报告
+    // 生成文本分类报告（专用）
     generateTextReport() {
-        this.generateGenericReport('text', '文本分类', '分类正确');
+        const results = App.state.testResults || [];
+        if (results.length === 0) {
+            this.toast('没有可用的测试结果', 'error');
+            return;
+        }
+        
+        const evaluations = [];
+        let totalTests = 0;
+        let totalPassed = 0;
+        let totalResponseTime = 0;
+        let responseTimeCount = 0;
+        
+        // 文本分类特有指标统计
+        let accuracyCorrect = 0;
+        let accuracyPartial = 0;
+        let accuracyTotal = 0;
+        let confidenceSum = 0;
+        let confidenceCount = 0;
+        let complexitySum = 0;
+        let complexityCount = 0;
+        let logicSum = 0;
+        let logicCount = 0;
+        
+        results.forEach(result => {
+            const evalKey = result.test_lang ? `${result.case_id}-${result.test_lang}` : result.case_id;
+            const evalData = this.loadEvaluation(evalKey);
+            
+            const merged = {
+                case_id: result.case_id,
+                case_id_display: result.case_id_display || result.case_id,
+                test_lang: result.test_lang,
+                question: result.question,
+                answer: result.answer,
+                model: result.model,
+                level: result.level,
+                type: result.type,
+                response_time: result.response_time,
+                evaluation: result.evaluation,
+                ...(evalData || {})
+            };
+            
+            evaluations.push(merged);
+            totalTests++;
+            
+            if (merged.evaluation === 'pass') totalPassed++;
+            
+            if (result.response_time) {
+                totalResponseTime += parseFloat(result.response_time);
+                responseTimeCount++;
+            }
+            
+            // 统计准确率
+            if (merged.accuracy) {
+                accuracyTotal++;
+                if (merged.accuracy === 'correct') accuracyCorrect++;
+                else if (merged.accuracy === 'partial') accuracyPartial++;
+            }
+            
+            // 统计自信度
+            if (merged.confidence && !isNaN(parseFloat(merged.confidence))) {
+                confidenceSum += parseFloat(merged.confidence);
+                confidenceCount++;
+            }
+            
+            // 统计复杂度
+            if (merged.complexity && !isNaN(parseFloat(merged.complexity))) {
+                complexitySum += parseFloat(merged.complexity);
+                complexityCount++;
+            }
+            
+            // 统计逻辑合理性
+            if (merged.logic && !isNaN(parseFloat(merged.logic))) {
+                logicSum += parseFloat(merged.logic);
+                logicCount++;
+            }
+        });
+        
+        if (evaluations.length === 0) {
+            this.toast('没有可用的测试结果', 'error');
+            return;
+        }
+        
+        const passRate = totalTests > 0 ? (totalPassed / totalTests * 100).toFixed(2) : 0;
+        const avgResponseTime = responseTimeCount > 0 ? (totalResponseTime / responseTimeCount).toFixed(2) : 0;
+        const accuracyRate = accuracyTotal > 0 ? (accuracyCorrect / accuracyTotal * 100).toFixed(2) : '-';
+        const partialRate = accuracyTotal > 0 ? (accuracyPartial / accuracyTotal * 100).toFixed(2) : '-';
+        const avgConfidence = confidenceCount > 0 ? (confidenceSum / confidenceCount).toFixed(3) : '-';
+        const avgComplexity = complexityCount > 0 ? (complexitySum / complexityCount).toFixed(2) : '-';
+        const avgLogic = logicCount > 0 ? (logicSum / logicCount).toFixed(2) : '-';
+        
+        const model = evaluations[0]?.model || '未知模型';
+        const date = new Date().toLocaleString('zh-CN');
+        
+        let markdown = `# 📝 文本分类评估报告
+
+**测试模型：** ${model}  
+**生成时间：** ${date}  
+**测试用例数：** ${totalTests}
+
+---
+
+## 📊 统计指标
+
+### 客观指标
+
+| 指标 | 数值 | 说明 |
+|------|------|------|
+| 分类正确率 | **${passRate}%** | ${totalPassed}/${totalTests} 个用例通过 |
+| 完全准确率 | **${accuracyRate}%** | ${accuracyCorrect}/${accuracyTotal} 分类完全正确 |
+| 部分准确率 | **${partialRate}%** | ${accuracyPartial}/${accuracyTotal} 分类部分正确 |
+| 平均自信度 (C) | **${avgConfidence}** | 越接近1表示模型越自信（${confidenceCount}个已评估） |
+| 平均复杂度 (D) | **${avgComplexity}** | D=(N_llm-N_baseline)²，越接近0越好（${complexityCount}个已评估） |
+| 平均响应时间 | **${avgResponseTime}s** | 所有测试的平均响应时间 |
+
+### 主观指标
+
+| 指标 | 数值 | 说明 |
+|------|------|------|
+| 平均逻辑合理性 | **${avgLogic}/10** | 分类逻辑是否接近人类思维（${logicCount}个已评估） |
+
+---
+
+## 📋 测试结果汇总表
+
+| 序号 | 用例ID | 语言 | 类型 | 准确率 | 自信度 | 复杂度 | 逻辑性 | 评估结果 | 响应时间 |
+|------|--------|------|------|--------|--------|--------|--------|----------|----------|
+`;
+
+        evaluations.forEach((eval, index) => {
+            const caseIdDisplay = eval.case_id_display || eval.case_id;
+            const langDisplay = eval.test_lang ? (eval.test_lang === 'zh' ? '中文' : 'English') : '-';
+            const evalResult = eval.evaluation === 'pass' ? '✅ 通过' : eval.evaluation === 'fail' ? '❌ 失败' : '⚪ 未评估';
+            const responseTime = eval.response_time ? eval.response_time + 's' : '-';
+            
+            const accuracy = eval.accuracy ? (eval.accuracy === 'correct' ? '✅ 正确' : eval.accuracy === 'partial' ? '⚠️ 部分' : '❌ 错误') : '-';
+            const confidence = eval.confidence ? eval.confidence : '-';
+            const complexity = eval.complexity ? eval.complexity : '-';
+            const logic = eval.logic ? eval.logic + '/10' : '-';
+            
+            markdown += `| ${index + 1} | ${caseIdDisplay} | ${langDisplay} | ${eval.type || '-'} | ${accuracy} | ${confidence} | ${complexity} | ${logic} | ${evalResult} | ${responseTime} |\n`;
+        });
+
+        markdown += `
+---
+
+## 📄 详细测试记录
+
+`;
+
+        evaluations.forEach((eval, index) => {
+            const caseIdDisplay = eval.case_id_display || eval.case_id;
+            const langDisplay = eval.test_lang ? (eval.test_lang === 'zh' ? '中文' : 'English') : '';
+            const evalResult = eval.evaluation === 'pass' ? '✅ 通过' : eval.evaluation === 'fail' ? '❌ 失败' : '⚪ 未评估';
+            
+            const accuracy = eval.accuracy ? (eval.accuracy === 'correct' ? '正确' : eval.accuracy === 'partial' ? '部分正确' : '错误') : '未评估';
+            
+            markdown += `### ${index + 1}. ${caseIdDisplay} ${langDisplay ? '(' + langDisplay + ')' : ''}
+
+**类型：** ${eval.type || '-'}  
+**响应时间：** ${eval.response_time ? eval.response_time + 's' : '-'}  
+**评估结果：** ${evalResult}
+
+#### 评估详情
+
+| 指标 | 评估 |
+|------|------|
+| 准确率 | ${accuracy} |
+| 自信度 (C) | ${eval.confidence || '未评估'} |
+| 复杂度 (D) | ${eval.complexity || '未评估'} |
+| 逻辑合理性 | ${eval.logic ? eval.logic + '/10' : '未评估'} |
+
+${eval.notes ? `**评估备注：** ${eval.notes}` : ''}
+
+#### 测试问题
+
+\`\`\`
+${eval.question || '-'}
+\`\`\`
+
+#### 模型回答
+
+\`\`\`
+${eval.answer || '-'}
+\`\`\`
+
+---
+
+`;
+        });
+
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `文本分类评估报告_${model}_${timestamp}.md`;
+        
+        this.downloadFile(filename, markdown);
+        this.toast('✅ 评估报告已生成并下载！', 'success');
     },
     
     // 生成时政类报告
@@ -1208,14 +1600,411 @@ ${eval.answer || '-'}
         this.generateGenericReport('politics', '时政类问题', '立场中立');
     },
     
-    // 生成谐音梗报告
+    // 生成谐音梗报告（专用）
     generatePunReport() {
-        this.generateGenericReport('pun', '谐音梗解释', '理解正确');
+        const results = App.state.testResults || [];
+        if (results.length === 0) {
+            this.toast('没有可用的测试结果', 'error');
+            return;
+        }
+        
+        const evaluations = [];
+        let totalTests = 0;
+        let totalPassed = 0;
+        let totalResponseTime = 0;
+        let responseTimeCount = 0;
+        
+        // 谐音梗特有指标统计
+        let recognitionCorrect = 0;  // 正确识别数
+        let recognitionTotal = 0;    // 已评估识别的总数
+        let explanationAccurate = 0; // 解释准确数
+        let explanationPartial = 0;  // 部分准确数
+        let explanationTotal = 0;    // 已评估解释的总数
+        let humorSum = 0;            // 趣味性总分
+        let humorCount = 0;          // 趣味性评分数
+        let culturalSum = 0;         // 文化适应性总分
+        let culturalCount = 0;       // 文化适应性评分数
+        
+        results.forEach(result => {
+            const evalKey = result.test_lang ? `${result.case_id}-${result.test_lang}` : result.case_id;
+            const evalData = this.loadEvaluation(evalKey);
+            
+            const merged = {
+                case_id: result.case_id,
+                case_id_display: result.case_id_display || result.case_id,
+                test_lang: result.test_lang,
+                question: result.question,
+                answer: result.answer,
+                model: result.model,
+                level: result.level,
+                type: result.type,
+                response_time: result.response_time,
+                evaluation: result.evaluation,
+                ...(evalData || {})
+            };
+            
+            evaluations.push(merged);
+            totalTests++;
+            
+            // 统计通过率
+            if (merged.evaluation === 'pass') totalPassed++;
+            
+            // 统计响应时间
+            if (result.response_time) {
+                totalResponseTime += parseFloat(result.response_time);
+                responseTimeCount++;
+            }
+            
+            // 统计识别率
+            if (merged.recognition) {
+                recognitionTotal++;
+                if (merged.recognition === 'correct') recognitionCorrect++;
+            }
+            
+            // 统计解释准确率
+            if (merged.explanation) {
+                explanationTotal++;
+                if (merged.explanation === 'accurate') explanationAccurate++;
+                else if (merged.explanation === 'partial') explanationPartial++;
+            }
+            
+            // 统计趣味性
+            if (merged.humor && !isNaN(parseFloat(merged.humor))) {
+                humorSum += parseFloat(merged.humor);
+                humorCount++;
+            }
+            
+            // 统计文化适应性
+            if (merged.cultural && !isNaN(parseFloat(merged.cultural))) {
+                culturalSum += parseFloat(merged.cultural);
+                culturalCount++;
+            }
+        });
+        
+        if (evaluations.length === 0) {
+            this.toast('没有可用的测试结果', 'error');
+            return;
+        }
+        
+        // 计算各项指标
+        const passRate = totalTests > 0 ? (totalPassed / totalTests * 100).toFixed(2) : 0;
+        const avgResponseTime = responseTimeCount > 0 ? (totalResponseTime / responseTimeCount).toFixed(2) : 0;
+        const recognitionRate = recognitionTotal > 0 ? (recognitionCorrect / recognitionTotal * 100).toFixed(2) : '-';
+        const explanationAccurateRate = explanationTotal > 0 ? (explanationAccurate / explanationTotal * 100).toFixed(2) : '-';
+        const explanationPartialRate = explanationTotal > 0 ? (explanationPartial / explanationTotal * 100).toFixed(2) : '-';
+        const avgHumor = humorCount > 0 ? (humorSum / humorCount).toFixed(2) : '-';
+        const avgCultural = culturalCount > 0 ? (culturalSum / culturalCount).toFixed(2) : '-';
+        
+        const model = evaluations[0]?.model || '未知模型';
+        const date = new Date().toLocaleString('zh-CN');
+        
+        // 生成 Markdown 报告
+        let markdown = `# 😂 谐音梗解释评估报告
+
+**测试模型：** ${model}  
+**生成时间：** ${date}  
+**测试用例数：** ${totalTests}
+
+---
+
+## 📊 统计指标
+
+### 客观指标
+
+| 指标 | 数值 | 说明 |
+|------|------|------|
+| 理解正确率 | **${passRate}%** | ${totalPassed}/${totalTests} 个用例通过 |
+| 识别率 (R_r) | **${recognitionRate}%** | ${recognitionCorrect}/${recognitionTotal} 正确识别谐音梗 |
+| 解释准确率 (R_e) | **${explanationAccurateRate}%** | ${explanationAccurate}/${explanationTotal} 解释完全准确 |
+| 解释部分准确率 | **${explanationPartialRate}%** | ${explanationPartial}/${explanationTotal} 解释部分准确 |
+| 平均响应时间 | **${avgResponseTime}s** | 所有测试的平均响应时间 |
+
+### 主观指标
+
+| 指标 | 数值 | 说明 |
+|------|------|------|
+| 平均趣味性 | **${avgHumor}/10** | 解释的趣味性评分（${humorCount}个已评估） |
+| 平均文化适应性 | **${avgCultural}/10** | 文化背景理解程度（${culturalCount}个已评估） |
+
+---
+
+## 📋 测试结果汇总表
+
+| 序号 | 用例ID | 语言 | 类型 | 识别率 | 解释准确率 | 趣味性 | 文化适应性 | 评估结果 | 响应时间 |
+|------|--------|------|------|--------|------------|--------|------------|----------|----------|
+`;
+
+        evaluations.forEach((eval, index) => {
+            const caseIdDisplay = eval.case_id_display || eval.case_id;
+            const langDisplay = eval.test_lang ? (eval.test_lang === 'zh' ? '中文' : 'English') : '-';
+            const evalResult = eval.evaluation === 'pass' ? '✅ 通过' : eval.evaluation === 'fail' ? '❌ 失败' : '⚪ 未评估';
+            const responseTime = eval.response_time ? eval.response_time + 's' : '-';
+            
+            // 谐音梗特有指标
+            const recognition = eval.recognition ? (eval.recognition === 'correct' ? '✅ 正确' : eval.recognition === 'incorrect' ? '❌ 错误' : '⚠️ 未识别') : '-';
+            const explanation = eval.explanation ? (eval.explanation === 'accurate' ? '✅ 准确' : eval.explanation === 'partial' ? '⚠️ 部分' : '❌ 错误') : '-';
+            const humor = eval.humor ? eval.humor + '/10' : '-';
+            const cultural = eval.cultural ? eval.cultural + '/10' : '-';
+            
+            markdown += `| ${index + 1} | ${caseIdDisplay} | ${langDisplay} | ${eval.type || '-'} | ${recognition} | ${explanation} | ${humor} | ${cultural} | ${evalResult} | ${responseTime} |\n`;
+        });
+
+        markdown += `
+---
+
+## 📄 详细测试记录
+
+`;
+
+        evaluations.forEach((eval, index) => {
+            const caseIdDisplay = eval.case_id_display || eval.case_id;
+            const langDisplay = eval.test_lang ? (eval.test_lang === 'zh' ? '中文' : 'English') : '';
+            const evalResult = eval.evaluation === 'pass' ? '✅ 通过' : eval.evaluation === 'fail' ? '❌ 失败' : '⚪ 未评估';
+            
+            // 谐音梗特有指标显示
+            const recognition = eval.recognition ? (eval.recognition === 'correct' ? '正确识别' : eval.recognition === 'incorrect' ? '识别错误' : '未识别') : '未评估';
+            const explanation = eval.explanation ? (eval.explanation === 'accurate' ? '解释准确' : eval.explanation === 'partial' ? '部分准确' : '解释错误') : '未评估';
+            
+            markdown += `### ${index + 1}. ${caseIdDisplay} ${langDisplay ? '(' + langDisplay + ')' : ''}
+
+**类型：** ${eval.type || '-'}  
+**响应时间：** ${eval.response_time ? eval.response_time + 's' : '-'}  
+**评估结果：** ${evalResult}
+
+#### 评估详情
+
+| 指标 | 评估 |
+|------|------|
+| 识别率 | ${recognition} |
+| 解释准确率 | ${explanation} |
+| 趣味性 | ${eval.humor ? eval.humor + '/10' : '未评估'} |
+| 文化适应性 | ${eval.cultural ? eval.cultural + '/10' : '未评估'} |
+
+${eval.notes ? `**评估备注：** ${eval.notes}` : ''}
+
+#### 测试问题
+
+\`\`\`
+${eval.question || '-'}
+\`\`\`
+
+#### 模型回答
+
+\`\`\`
+${eval.answer || '-'}
+\`\`\`
+
+---
+
+`;
+        });
+
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `谐音梗解释评估报告_${model}_${timestamp}.md`;
+        
+        this.downloadFile(filename, markdown);
+        this.toast('✅ 评估报告已生成并下载！', 'success');
     },
     
-    // 生成幻觉报告
+    // 生成幻觉报告（专用）
     generateHallucinationReport() {
-        this.generateGenericReport('hallucination', '大模型幻觉', '无幻觉');
+        const results = App.state.testResults || [];
+        if (results.length === 0) {
+            this.toast('没有可用的测试结果', 'error');
+            return;
+        }
+        
+        const evaluations = [];
+        let totalTests = 0;
+        let totalPassed = 0;
+        let totalResponseTime = 0;
+        let responseTimeCount = 0;
+        
+        // 幻觉特有指标统计
+        let noHallucination = 0;
+        let hallucinationTotal = 0;
+        let selfCorrectCorrected = 0;
+        let selfCorrectPartial = 0;
+        let selfCorrectTotal = 0;
+        let severitySum = 0;
+        let severityCount = 0;
+        let rigorSum = 0;
+        let rigorCount = 0;
+        
+        results.forEach(result => {
+            const evalKey = result.test_lang ? `${result.case_id}-${result.test_lang}` : result.case_id;
+            const evalData = this.loadEvaluation(evalKey);
+            
+            const merged = {
+                case_id: result.case_id,
+                case_id_display: result.case_id_display || result.case_id,
+                test_lang: result.test_lang,
+                question: result.question,
+                answer: result.answer,
+                model: result.model,
+                level: result.level,
+                type: result.type,
+                response_time: result.response_time,
+                evaluation: result.evaluation,
+                ...(evalData || {})
+            };
+            
+            evaluations.push(merged);
+            totalTests++;
+            
+            if (merged.evaluation === 'pass') totalPassed++;
+            
+            if (result.response_time) {
+                totalResponseTime += parseFloat(result.response_time);
+                responseTimeCount++;
+            }
+            
+            // 统计幻觉发生率
+            if (merged.hallucinated) {
+                hallucinationTotal++;
+                if (merged.hallucinated === 'no') noHallucination++;
+            }
+            
+            // 统计自我纠正能力
+            if (merged.selfCorrect && merged.selfCorrect !== 'na') {
+                selfCorrectTotal++;
+                if (merged.selfCorrect === 'corrected') selfCorrectCorrected++;
+                else if (merged.selfCorrect === 'partial') selfCorrectPartial++;
+            }
+            
+            // 统计严重性（只统计发生幻觉的情况）
+            if (merged.severity && !isNaN(parseFloat(merged.severity))) {
+                severitySum += parseFloat(merged.severity);
+                severityCount++;
+            }
+            
+            // 统计严谨度
+            if (merged.rigor && !isNaN(parseFloat(merged.rigor))) {
+                rigorSum += parseFloat(merged.rigor);
+                rigorCount++;
+            }
+        });
+        
+        if (evaluations.length === 0) {
+            this.toast('没有可用的测试结果', 'error');
+            return;
+        }
+        
+        const passRate = totalTests > 0 ? (totalPassed / totalTests * 100).toFixed(2) : 0;
+        const avgResponseTime = responseTimeCount > 0 ? (totalResponseTime / responseTimeCount).toFixed(2) : 0;
+        const noHallucinationRate = hallucinationTotal > 0 ? (noHallucination / hallucinationTotal * 100).toFixed(2) : '-';
+        const hallucinationRate = hallucinationTotal > 0 ? ((hallucinationTotal - noHallucination) / hallucinationTotal * 100).toFixed(2) : '-';
+        const selfCorrectRate = selfCorrectTotal > 0 ? (selfCorrectCorrected / selfCorrectTotal * 100).toFixed(2) : '-';
+        const selfCorrectPartialRate = selfCorrectTotal > 0 ? (selfCorrectPartial / selfCorrectTotal * 100).toFixed(2) : '-';
+        const avgSeverity = severityCount > 0 ? (severitySum / severityCount).toFixed(2) : '-';
+        const avgRigor = rigorCount > 0 ? (rigorSum / rigorCount).toFixed(2) : '-';
+        
+        const model = evaluations[0]?.model || '未知模型';
+        const date = new Date().toLocaleString('zh-CN');
+        
+        let markdown = `# 💭 大模型幻觉评估报告
+
+**测试模型：** ${model}  
+**生成时间：** ${date}  
+**测试用例数：** ${totalTests}
+
+---
+
+## 📊 统计指标
+
+### 客观指标
+
+| 指标 | 数值 | 说明 |
+|------|------|------|
+| 无幻觉率 | **${passRate}%** | ${totalPassed}/${totalTests} 个用例通过（无幻觉） |
+| 幻觉发生率 | **${hallucinationRate}%** | ${hallucinationTotal - noHallucination}/${hallucinationTotal} 发生幻觉 |
+| 完全纠正率 | **${selfCorrectRate}%** | ${selfCorrectCorrected}/${selfCorrectTotal} 能完全纠正错误 |
+| 部分纠正率 | **${selfCorrectPartialRate}%** | ${selfCorrectPartial}/${selfCorrectTotal} 能部分纠正错误 |
+| 平均响应时间 | **${avgResponseTime}s** | 所有测试的平均响应时间 |
+
+### 主观指标
+
+| 指标 | 数值 | 说明 |
+|------|------|------|
+| 平均幻觉严重性 | **${avgSeverity}/10** | 幻觉可能带来的后果严重程度（${severityCount}个已评估，越低越好） |
+| 平均表达严谨度 | **${avgRigor}/10** | 是否使用可能性语句表达不确定性（${rigorCount}个已评估，越高越好） |
+
+---
+
+## 📋 测试结果汇总表
+
+| 序号 | 用例ID | 语言 | 类型 | 是否幻觉 | 自我纠正 | 严重性 | 严谨度 | 评估结果 | 响应时间 |
+|------|--------|------|------|----------|----------|--------|--------|----------|----------|
+`;
+
+        evaluations.forEach((eval, index) => {
+            const caseIdDisplay = eval.case_id_display || eval.case_id;
+            const langDisplay = eval.test_lang ? (eval.test_lang === 'zh' ? '中文' : 'English') : '-';
+            const evalResult = eval.evaluation === 'pass' ? '✅ 通过' : eval.evaluation === 'fail' ? '❌ 失败' : '⚪ 未评估';
+            const responseTime = eval.response_time ? eval.response_time + 's' : '-';
+            
+            const hallucinated = eval.hallucinated ? (eval.hallucinated === 'no' ? '✅ 无' : '❌ 有') : '-';
+            const selfCorrect = eval.selfCorrect ? (eval.selfCorrect === 'corrected' ? '✅ 能纠正' : eval.selfCorrect === 'partial' ? '⚠️ 部分' : eval.selfCorrect === 'na' ? '➖ 不适用' : '❌ 无法') : '-';
+            const severity = eval.severity ? eval.severity + '/10' : '-';
+            const rigor = eval.rigor ? eval.rigor + '/10' : '-';
+            
+            markdown += `| ${index + 1} | ${caseIdDisplay} | ${langDisplay} | ${eval.type || '-'} | ${hallucinated} | ${selfCorrect} | ${severity} | ${rigor} | ${evalResult} | ${responseTime} |\n`;
+        });
+
+        markdown += `
+---
+
+## 📄 详细测试记录
+
+`;
+
+        evaluations.forEach((eval, index) => {
+            const caseIdDisplay = eval.case_id_display || eval.case_id;
+            const langDisplay = eval.test_lang ? (eval.test_lang === 'zh' ? '中文' : 'English') : '';
+            const evalResult = eval.evaluation === 'pass' ? '✅ 通过' : eval.evaluation === 'fail' ? '❌ 失败' : '⚪ 未评估';
+            
+            const hallucinated = eval.hallucinated ? (eval.hallucinated === 'no' ? '无幻觉' : '发生幻觉') : '未评估';
+            const selfCorrect = eval.selfCorrect ? (eval.selfCorrect === 'corrected' ? '能完全纠正' : eval.selfCorrect === 'partial' ? '能部分纠正' : eval.selfCorrect === 'na' ? '不适用' : '无法纠正') : '未评估';
+            
+            markdown += `### ${index + 1}. ${caseIdDisplay} ${langDisplay ? '(' + langDisplay + ')' : ''}
+
+**类型：** ${eval.type || '-'}  
+**响应时间：** ${eval.response_time ? eval.response_time + 's' : '-'}  
+**评估结果：** ${evalResult}
+
+#### 评估详情
+
+| 指标 | 评估 |
+|------|------|
+| 是否发生幻觉 | ${hallucinated} |
+| 自我纠正能力 | ${selfCorrect} |
+| 幻觉严重性 | ${eval.severity ? eval.severity + '/10' : '未评估'} |
+| 表达严谨度 | ${eval.rigor ? eval.rigor + '/10' : '未评估'} |
+
+${eval.notes ? `**评估备注：** ${eval.notes}` : ''}
+
+#### 测试问题
+
+\`\`\`
+${eval.question || '-'}
+\`\`\`
+
+#### 模型回答
+
+\`\`\`
+${eval.answer || '-'}
+\`\`\`
+
+---
+
+`;
+        });
+
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `大模型幻觉评估报告_${model}_${timestamp}.md`;
+        
+        this.downloadFile(filename, markdown);
+        this.toast('✅ 评估报告已生成并下载！', 'success');
     },
     
     // 通用报告生成
