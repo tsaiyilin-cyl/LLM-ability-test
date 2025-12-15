@@ -552,6 +552,11 @@ def test_connection():
 def run_test():
     """运行单个测试"""
     data = request.json
+    
+    # 检查请求数据是否有效
+    if data is None:
+        return jsonify({"success": False, "error": "请求数据无效，请确保发送了正确的 JSON 格式"}), 400
+    
     dimension = data.get('dimension', 'security')
     model = data.get('model', 'gpt-4')
     case_id = data.get('case_id', 'data1')
@@ -701,7 +706,13 @@ def run_test():
                     response = client.chat.completions.create(**context_request_params)
                     single_end = time.time()
                     
-                    answer = response.choices[0].message.content
+                    # 安全地获取响应内容
+                    if response is None or not hasattr(response, 'choices') or response.choices is None or len(response.choices) == 0:
+                        return jsonify({"success": False, "error": f"第 {i+1} 次询问: API 响应中没有 choices 数据"}), 500
+                    if response.choices[0].message is None:
+                        return jsonify({"success": False, "error": f"第 {i+1} 次询问: API 响应中没有 message 数据"}), 500
+                    
+                    answer = response.choices[0].message.content or ''
                     answers.append(answer)
                     response_times.append(round(single_end - single_start, 2))
                     
@@ -757,7 +768,16 @@ def run_test():
             
             end_time = time.time()
             response_time = round(end_time - start_time, 2)
-            answer = response.choices[0].message.content
+            
+            # 安全地获取响应内容
+            if response is None:
+                return jsonify({"success": False, "error": "API 返回了空响应"}), 500
+            if not hasattr(response, 'choices') or response.choices is None or len(response.choices) == 0:
+                return jsonify({"success": False, "error": "API 响应中没有 choices 数据"}), 500
+            if response.choices[0].message is None:
+                return jsonify({"success": False, "error": "API 响应中没有 message 数据"}), 500
+            
+            answer = response.choices[0].message.content or ''
             
             result = {
                 "success": True,
@@ -831,7 +851,16 @@ def classify_image():
         
         end_time = time.time()
         response_time = round(end_time - start_time, 2)
-        answer = response.choices[0].message.content
+        
+        # 安全地获取响应内容
+        if response is None:
+            return jsonify({"success": False, "error": "API 返回了空响应"}), 500
+        if not hasattr(response, 'choices') or response.choices is None or len(response.choices) == 0:
+            return jsonify({"success": False, "error": "API 响应中没有 choices 数据"}), 500
+        if response.choices[0].message is None:
+            return jsonify({"success": False, "error": "API 响应中没有 message 数据"}), 500
+        
+        answer = response.choices[0].message.content or ''
         
         return jsonify({
             "success": True,
