@@ -16,7 +16,7 @@ sys_prompt_en = '''You are a helpful AI assistant. Please help users solve their
 # 用户提示词模板 (中英文)
 # =============================================================================
 
-user_prompt_zh = '''你需要帮助用户进行谐音梗识别，如果是，对谐音梗进行解释。
+user_prompt_zh = '''你需要帮助用户进行谐音梗识别，如果是，对谐音梗进行解释。注意，双关不是谐音梗，我需要判断的是谐音梗。
 输入是：{input}
 
 输出格式为，严格按照格式输出
@@ -26,14 +26,15 @@ user_prompt_zh = '''你需要帮助用户进行谐音梗识别，如果是，对
 {{是/否；谐音梗解释（例如对于蓝瘦香菇，你的解释为：难受，想哭）}}
 '''
 
-user_prompt_en = '''You need to help the user identify puns/homophones. If it is a pun, explain it.
+user_prompt_en = '''You need to help the user identify homophones. If there exists a homophonic phenonmenon, explain it.
+You need to help the user identify homophonic puns. If it is a homophonic pun, explain it. Note: a double entendre is not a homophonic pun; you must judge specifically whether it is a homophonic pun.
 Input: {input}
 
-Output format (strictly follow):
+Output format (strictly follow this format):
 1.reasoning
-{{Insert your reasoning steps here}}
+{{Write your reasoning steps here}}
 2.answer
-{{Yes/No; Pun explanation (e.g., for "Eel on Musk", your explanation: "Elon Musk" - a homophone pun)}}
+{{Yes/No; homophonic pun explanation (e.g., for "蓝瘦香菇", your explanation should be: "难受，想哭")}}
 '''
 
 

@@ -149,9 +149,9 @@ const Components = {
                             <summary style="cursor: pointer; color: var(--accent-primary); font-size: 0.9rem;">查看所有 ${result.repeat_times} 次回答</summary>
                             <div style="margin-top: 0.5rem;">
                                 ${result.answers.map((ans, idx) => `
-                                    <div style="margin-bottom: 0.5rem; padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px;">
+                                    <div style="margin-bottom: 0.5rem; padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px; overflow: hidden;">
                                         <strong>第 ${idx + 1} 次</strong> (${result.response_times ? result.response_times[idx] + 's' : ''}):
-                                        <pre style="margin-top: 0.25rem; font-size: 0.85rem;">${ans}</pre>
+                                        <pre style="margin-top: 0.25rem; font-size: 0.85rem; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">${ans}</pre>
                                     </div>
                                 `).join('')}
                             </div>
@@ -513,7 +513,7 @@ const Components = {
                             </span>
                         </div>
                         <div class="form-field">
-                            <label>描述精细度（detail，0-10分）</label>
+                            <label>描述精细度（Detail，0-10分）</label>
                             <input type="number" id="eval-detail-${caseId}" class="eval-input" 
                                    min="0" max="10" step="0.5" placeholder="评估分类理由的精细程度">
                             <span class="hint" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">
@@ -1038,10 +1038,10 @@ const Components = {
             const accuracy = document.getElementById(`eval-accuracy-${caseId}`)?.value || '';
             
             // 根据一致性和准确性计算评估状态
-            // 通过条件：结果一致 且 分类准确
+            // 通过条件：结果一致 (consistency === '1') 且 分类准确 (accuracy === 'correct')
             let evalStatus = '';
             if (consistency && accuracy) {
-                if (consistency === 'consistent' && accuracy === 'accurate') {
+                if (consistency === '1' && accuracy === 'correct') {
                     evalStatus = 'pass';
                 } else {
                     evalStatus = 'fail';
@@ -1310,23 +1310,122 @@ const Components = {
     },
     
     // 创建错误卡片
-    createErrorCard(caseId, error) {
+    createErrorCard(caseId, error, testParams = null) {
         const card = document.createElement('div');
-        card.className = 'result-card';
+        card.className = 'result-card error-card';
         card.style.borderColor = 'var(--accent-danger)';
+        
+        // 生成唯一ID用于卡片
+        const cardId = testParams?.test_lang ? `error-${caseId}-${testParams.test_lang}` : `error-${caseId}`;
+        card.id = cardId;
+        
+        // 显示语言标签（如果有）
+        const langBadge = testParams?.test_lang 
+            ? `<span class="badge badge-info">${testParams.test_lang === 'zh' ? '中文' : 'EN'}</span>` 
+            : '';
         
         card.innerHTML = `
             <div class="result-meta">
-                <span>❌ ${caseId}</span>
+                <span>❌ ${testParams?.case_id_display || caseId}</span>
+                ${langBadge}
                 <span style="color: var(--accent-danger);">测试失败</span>
             </div>
             <div class="result-answer">
                 <h4>错误信息</h4>
                 <pre style="color: var(--accent-danger);">${error}</pre>
             </div>
+            ${testParams ? `
+            <div class="eval-controls">
+                <button class="eval-btn btn-retry" data-retry="true" title="重新运行此测试">🔄 重试</button>
+            </div>
+            ` : ''}
         `;
         
+        // 绑定重试按钮事件（如果有测试参数）
+        if (testParams) {
+            const retryBtn = card.querySelector('.btn-retry[data-retry]');
+            if (retryBtn) {
+                retryBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await this.retryErrorTest(testParams, card);
+                };
+            }
+        }
+        
         return card;
+    },
+    
+    // 重试失败的测试
+    async retryErrorTest(testParams, card) {
+        const config = API.getConfig();
+        if (!config.api_key) {
+            this.toast('请先配置 API Key', 'error');
+            return;
+        }
+        
+        // 获取重试按钮并禁用
+        const retryBtn = card.querySelector('.btn-retry');
+        if (retryBtn) {
+            retryBtn.disabled = true;
+            retryBtn.innerHTML = '⏳ 重试中...';
+        }
+        
+        // 添加加载状态
+        card.classList.add('retrying');
+        
+        try {
+            const model = App.getSelectedModel();
+            const prompts = App.getPrompts();
+            
+            const result = await API.runTest({
+                dimension: testParams.dimension,
+                model,
+                case_id: testParams.case_id,
+                lang: testParams.test_lang || 'zh',
+                consistency_test: testParams.consistency_test || false,
+                repeat_times: testParams.repeat_times || 1,
+                ...prompts
+            });
+            
+            if (result.success) {
+                // 添加必要的字段到结果中
+                result.dimension = testParams.dimension;
+                result.test_lang = testParams.test_lang;
+                if (testParams.case_id_display) {
+                    result.case_id_display = testParams.case_id_display;
+                }
+                
+                // 添加到测试结果
+                App.state.testResults.push(result);
+                App.saveTestResults();
+                
+                // 创建新的结果卡片并替换错误卡片
+                const newCard = this.createResultCard(result);
+                card.parentNode.replaceChild(newCard, card);
+                
+                // 更新统计
+                App.updateStats();
+                
+                this.toast('✅ 重试成功！', 'success');
+            } else {
+                this.toast(`❌ 重试失败: ${result.error}`, 'error');
+                // 恢复按钮状态
+                if (retryBtn) {
+                    retryBtn.disabled = false;
+                    retryBtn.innerHTML = '🔄 重试';
+                }
+                card.classList.remove('retrying');
+            }
+        } catch (error) {
+            this.toast(`❌ 重试失败: ${error.message}`, 'error');
+            // 恢复按钮状态
+            if (retryBtn) {
+                retryBtn.disabled = false;
+                retryBtn.innerHTML = '🔄 重试';
+            }
+            card.classList.remove('retrying');
+        }
     },
     
     // 创建加载指示器
@@ -1799,6 +1898,195 @@ ${eval.answer || '-'}
 
         const timestamp = new Date().toISOString().slice(0, 10);
         const filename = `文本分类评估报告_${model}_${timestamp}.md`;
+        
+        this.downloadFile(filename, markdown);
+        this.toast('✅ 评估报告已生成并下载！', 'success');
+    },
+    
+    // 生成图片分类报告（专用）
+    generateImageReport() {
+        const results = App.state.testResults || [];
+        if (results.length === 0) {
+            this.toast('没有可用的测试结果', 'error');
+            return;
+        }
+        
+        const evaluations = [];
+        let totalTests = 0;
+        let totalResponseTime = 0;
+        let responseTimeCount = 0;
+        
+        // 图片分类特有指标统计
+        let accuracyCorrect = 0;
+        let accuracyTotal = 0;
+        let consistencyConsistent = 0;
+        let consistencyTotal = 0;
+        let vagueSum = 0;
+        let vagueCount = 0;
+        let detailSum = 0;
+        let detailCount = 0;
+        
+        results.forEach(result => {
+            const evalKey = result.test_lang ? `${result.case_id}-${result.test_lang}` : result.case_id;
+            const evalData = this.loadEvaluation(evalKey);
+            
+            const merged = {
+                case_id: result.case_id,
+                case_id_display: result.case_id_display || result.case_id,
+                test_lang: result.test_lang,
+                question: result.question,
+                answer: result.answer,
+                model: result.model,
+                level: result.level,
+                type: result.type,
+                response_time: result.response_time,
+                evaluation: result.evaluation,
+                ...(evalData || {})
+            };
+            
+            evaluations.push(merged);
+            totalTests++;
+            
+            if (result.response_time) {
+                totalResponseTime += parseFloat(result.response_time);
+                responseTimeCount++;
+            }
+            
+            // 统计准确率
+            if (merged.accuracy) {
+                accuracyTotal++;
+                if (merged.accuracy === 'correct') accuracyCorrect++;
+            }
+            
+            // 统计一致性
+            if (merged.consistency) {
+                consistencyTotal++;
+                if (merged.consistency === '1') consistencyConsistent++;
+            }
+            
+            // 统计主观指标
+            if (merged.vague && !isNaN(parseFloat(merged.vague))) {
+                vagueSum += parseFloat(merged.vague);
+                vagueCount++;
+            }
+            if (merged.detail && !isNaN(parseFloat(merged.detail))) {
+                detailSum += parseFloat(merged.detail);
+                detailCount++;
+            }
+        });
+        
+        if (evaluations.length === 0) {
+            this.toast('没有可用的测试结果', 'error');
+            return;
+        }
+        
+        const avgResponseTime = responseTimeCount > 0 ? (totalResponseTime / responseTimeCount).toFixed(2) : 0;
+        const accuracyRate = accuracyTotal > 0 ? (accuracyCorrect / accuracyTotal * 100).toFixed(2) : '-';
+        const consistencyRate = consistencyTotal > 0 ? (consistencyConsistent / consistencyTotal * 100).toFixed(2) : '-';
+        const avgVague = vagueCount > 0 ? (vagueSum / vagueCount).toFixed(2) : '-';
+        const avgDetail = detailCount > 0 ? (detailSum / detailCount).toFixed(2) : '-';
+        
+        const model = evaluations[0]?.model || '未知模型';
+        const date = new Date().toLocaleString('zh-CN');
+        
+        let markdown = `# 🖼️ 图片分类评估报告
+
+**测试模型：** ${model}  
+**生成时间：** ${date}  
+**测试用例数：** ${totalTests}
+
+---
+
+## 📊 统计指标
+
+### 客观指标
+
+| 指标 | 数值 | 说明 |
+|------|------|------|
+| 分类准确率 | **${accuracyRate}%** | ${accuracyCorrect}/${accuracyTotal} 分类正确 |
+| 推理一致性 | **${consistencyRate}%** | ${consistencyConsistent}/${consistencyTotal} 多次推理结果一致 |
+| 平均响应时间 | **${avgResponseTime}s** | 所有测试的平均响应时间 |
+
+### 主观指标
+
+| 指标 | 数值 | 说明 |
+|------|------|------|
+| 平均模糊表达能力 | **${avgVague}/10** | 不确定性表达合理性（${vagueCount}个已评估） |
+| 平均描述精细度 | **${avgDetail}/10** | 分类理由的精细程度（${detailCount}个已评估） |
+
+---
+
+## 📋 测试结果汇总表
+
+| 序号 | 用例ID | 语言 | 类型 | 准确率 | 一致性 | Vague | Detail | 评估结果 | 响应时间 |
+|------|--------|------|------|--------|--------|-------|--------|----------|----------|
+`;
+
+        evaluations.forEach((eval, index) => {
+            const caseIdDisplay = eval.case_id_display || eval.case_id;
+            const langDisplay = eval.test_lang ? (eval.test_lang === 'zh' ? '中文' : 'English') : '-';
+            const evalResult = eval.evaluation === 'pass' ? '✅ 通过' : eval.evaluation === 'fail' ? '❌ 失败' : '⚪ 未评估';
+            const responseTime = eval.response_time ? eval.response_time + 's' : '-';
+            
+            const accuracy = eval.accuracy ? (eval.accuracy === 'correct' ? '✅ 正确' : '❌ 错误') : '-';
+            const consistency = eval.consistency ? (eval.consistency === '1' ? '✅ 一致' : '❌ 不一致') : '-';
+            const vague = eval.vague ? eval.vague + '/10' : '-';
+            const detail = eval.detail ? eval.detail + '/10' : '-';
+            
+            markdown += `| ${index + 1} | ${caseIdDisplay} | ${langDisplay} | ${eval.type || '-'} | ${accuracy} | ${consistency} | ${vague} | ${detail} | ${evalResult} | ${responseTime} |\n`;
+        });
+
+        markdown += `
+---
+
+## 📄 详细测试记录
+
+`;
+
+        evaluations.forEach((eval, index) => {
+            const caseIdDisplay = eval.case_id_display || eval.case_id;
+            const langDisplay = eval.test_lang ? (eval.test_lang === 'zh' ? '中文' : 'English') : '';
+            const evalResult = eval.evaluation === 'pass' ? '✅ 通过' : eval.evaluation === 'fail' ? '❌ 失败' : '⚪ 未评估';
+            
+            const accuracy = eval.accuracy ? (eval.accuracy === 'correct' ? '正确' : '错误') : '未评估';
+            const consistency = eval.consistency ? (eval.consistency === '1' ? '一致' : '不一致') : '未评估';
+            
+            markdown += `### ${index + 1}. ${caseIdDisplay} ${langDisplay ? '(' + langDisplay + ')' : ''}
+
+**类型：** ${eval.type || '-'}  
+**响应时间：** ${eval.response_time ? eval.response_time + 's' : '-'}  
+**评估结果：** ${evalResult}
+
+#### 评估详情
+
+| 指标 | 评估 |
+|------|------|
+| 推理一致性 (Cons) | ${consistency} |
+| 分类准确率 | ${accuracy} |
+| 模糊表达能力 (Vague) | ${eval.vague ? eval.vague + '/10' : '未评估'} |
+| 描述精细度 (Detail) | ${eval.detail ? eval.detail + '/10' : '未评估'} |
+
+${eval.notes ? `**评估备注：** ${eval.notes}` : ''}
+
+#### 测试问题
+
+\`\`\`
+${eval.question || '-'}
+\`\`\`
+
+#### 模型回答
+
+\`\`\`
+${eval.answer || '-'}
+\`\`\`
+
+---
+
+`;
+        });
+
+        const timestamp = new Date().toISOString().slice(0, 10);
+        const filename = `图片分类评估报告_${model}_${timestamp}.md`;
         
         this.downloadFile(filename, markdown);
         this.toast('✅ 评估报告已生成并下载！', 'success');

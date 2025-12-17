@@ -383,6 +383,16 @@ const App = {
                     
                     document.getElementById(`loading-${loadingId}`)?.remove();
                     
+                    // 构建测试参数对象，用于失败时重试
+                    const testParams = {
+                        dimension: this.state.currentDimension,
+                        case_id: caseId,
+                        test_lang: testLang,
+                        consistency_test: consistencyTest,
+                        repeat_times: consistencyTest ? validRepeatTimes : 1,
+                        case_id_display: lang === 'all' ? `${caseId} (${testLang === 'zh' ? '中文' : 'EN'})` : caseId
+                    };
+                    
                     if (result.success) {
                         // 添加 dimension 和 lang 字段到结果中
                         result.dimension = this.state.currentDimension;
@@ -398,12 +408,22 @@ const App = {
                         container?.appendChild(card);
                         this.updateStats();
                     } else {
-                        const errorCard = Components.createErrorCard(loadingId, result.error);
+                        // 传递测试参数，以便重试
+                        const errorCard = Components.createErrorCard(loadingId, result.error, testParams);
                         container?.appendChild(errorCard);
                     }
                 } catch (error) {
                     document.getElementById(`loading-${loadingId}`)?.remove();
-                    const errorCard = Components.createErrorCard(loadingId, error.message);
+                    // 构建测试参数对象用于重试
+                    const testParams = {
+                        dimension: this.state.currentDimension,
+                        case_id: caseId,
+                        test_lang: testLang,
+                        consistency_test: consistencyTest,
+                        repeat_times: consistencyTest ? validRepeatTimes : 1,
+                        case_id_display: lang === 'all' ? `${caseId} (${testLang === 'zh' ? '中文' : 'EN'})` : caseId
+                    };
+                    const errorCard = Components.createErrorCard(loadingId, error.message, testParams);
                     container?.appendChild(errorCard);
                 }
             }

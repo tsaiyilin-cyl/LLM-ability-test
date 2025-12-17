@@ -11,8 +11,100 @@ import time
 import base64
 import os
 import requests
+from io import BytesIO
+from PIL import Image
 
 from config import OPENAI_API_BASE, OPENAI_API_KEY, AVAILABLE_MODELS
+
+# =============================================================================
+# 图片压缩工具函数
+# =============================================================================
+
+# Base64 编码后的最大大小（4.5MB，留些余量给API的5MB限制）
+MAX_BASE64_SIZE = 4.5 * 1024 * 1024  # 4.5MB
+
+def compress_image_to_base64(image_path, max_base64_size=MAX_BASE64_SIZE):
+    """
+    读取图片并压缩到指定的 base64 大小限制内
+    
+    Args:
+        image_path: 图片文件路径
+        max_base64_size: base64 编码后的最大字节数，默认 4.5MB
+    
+    Returns:
+        tuple: (base64_string, mime_type)
+    """
+    # 根据文件扩展名确定 MIME 类型
+    ext = os.path.splitext(image_path)[1].lower()
+    mime_types = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp'
+    }
+    original_mime = mime_types.get(ext, 'image/jpeg')
+    
+    # 先尝试直接读取原始文件
+    with open(image_path, 'rb') as f:
+        image_data = f.read()
+    
+    image_base64 = base64.b64encode(image_data).decode('utf-8')
+    
+    # 如果大小在限制内，直接返回
+    if len(image_base64) <= max_base64_size:
+        return image_base64, original_mime
+    
+    # 需要压缩 - 使用 PIL 进行压缩
+    img = Image.open(image_path)
+    
+    # 如果是 RGBA 模式，转换为 RGB（JPEG 不支持透明通道）
+    if img.mode in ('RGBA', 'LA', 'P'):
+        # 创建白色背景
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        if img.mode == 'P':
+            img = img.convert('RGBA')
+        background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+        img = background
+    elif img.mode != 'RGB':
+        img = img.convert('RGB')
+    
+    # 使用 JPEG 格式进行压缩（压缩率更高）
+    output_mime = 'image/jpeg'
+    
+    # 尝试不同的质量级别和尺寸
+    quality_levels = [85, 70, 55, 40, 30, 20]
+    scale_factors = [1.0, 0.8, 0.6, 0.5, 0.4, 0.3]
+    
+    for scale in scale_factors:
+        if scale < 1.0:
+            new_width = int(img.size[0] * scale)
+            new_height = int(img.size[1] * scale)
+            resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        else:
+            resized_img = img
+        
+        for quality in quality_levels:
+            buffer = BytesIO()
+            resized_img.save(buffer, format='JPEG', quality=quality, optimize=True)
+            compressed_data = buffer.getvalue()
+            compressed_base64 = base64.b64encode(compressed_data).decode('utf-8')
+            
+            if len(compressed_base64) <= max_base64_size:
+                return compressed_base64, output_mime
+    
+    # 如果还是太大，最后一次尝试极端压缩
+    final_scale = 0.2
+    new_width = int(img.size[0] * final_scale)
+    new_height = int(img.size[1] * final_scale)
+    resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+    
+    buffer = BytesIO()
+    resized_img.save(buffer, format='JPEG', quality=15, optimize=True)
+    compressed_data = buffer.getvalue()
+    compressed_base64 = base64.b64encode(compressed_data).decode('utf-8')
+    
+    return compressed_base64, output_mime
 
 # =============================================================================
 # 图片分类提示词（内嵌，避免中文路径编码问题）
@@ -314,11 +406,11 @@ Dog     0.07    0.88    0.05"""
     "pun": {
         "zh": {
             "sys": "你是一个乐于助人的AI助手，请尽可能帮助用户解决问题。在输出结果之前你首先需要一步一步的输出推理过程。",
-            "user": "你需要帮助用户进行谐音梗识别，如果是，对谐音梗进行解释。\n输入是：{question}\n\n输出格式为，严格按照格式输出\n1.reasoning\n{{在这里写入你的推理步骤}}\n2.answer\n{{是/否；谐音梗解释（例如对于蓝瘦香菇，你的解释为：难受，想哭）}}"
+            "user": "你需要帮助用户进行谐音梗识别，如果是，对谐音梗进行解释。注意，双关不是谐音梗，我需要判断的是谐音梗。\n输入是：{question}\n\n输出格式为，严格按照格式输出\n1.reasoning\n{{在这里写入你的推理步骤}}\n2.answer\n{{是/否；谐音梗解释（例如对于蓝瘦香菇，你的解释为：难受，想哭）}}"
         },
         "en": {
             "sys": "You are a helpful AI assistant. Please help users solve their problems as much as possible. Before outputting the result, you need to output the reasoning process step by step.",
-            "user": "You need to help the user identify puns/homophones. If it is a pun, explain it.\nInput: {question}\n\nOutput format (strictly follow):\n1.reasoning\n{{Insert your reasoning steps here}}\n2.answer\n{{Yes/No; Pun explanation (e.g., for \"Eel on Musk\", your explanation: \"Elon Musk\" - a homophone pun)}}"
+            "user": "You need to help the user identify homophones. If there exists a homophonic phenonmenon, explain it.\nYou need to help the user identify homophonic puns. If it is a homophonic pun, explain it. Note: a double entendre is not a homophonic pun; you must judge specifically whether it is a homophonic pun.\nInput: {question}\n\nOutput format (strictly follow this format):\n1.reasoning\n{{Write your reasoning steps here}}\n2.answer\n{{Yes/No; homophonic pun explanation (e.g., for \"蓝瘦香菇\", your explanation should be: \"难受，想哭\")}}"
         }
     },
     "hallucination": {
@@ -628,22 +720,9 @@ def run_test():
                 if not os.path.exists(image_path):
                     return jsonify({"success": False, "error": f"图片文件不存在: {filename} (路径: {image_path})"})
                 
-                # 读取图片文件并转换为 base64
+                # 读取图片文件并转换为 base64（自动压缩大图片）
                 try:
-                    with open(image_path, 'rb') as f:
-                        image_data = f.read()
-                        image_base64 = base64.b64encode(image_data).decode('utf-8')
-                    
-                    # 根据文件扩展名确定 MIME 类型
-                    ext = os.path.splitext(filename)[1].lower()
-                    mime_types = {
-                        '.jpg': 'image/jpeg',
-                        '.jpeg': 'image/jpeg',
-                        '.png': 'image/png',
-                        '.gif': 'image/gif',
-                        '.webp': 'image/webp'
-                    }
-                    mime_type = mime_types.get(ext, 'image/jpeg')
+                    image_base64, mime_type = compress_image_to_base64(image_path)
                     
                     # 使用 base64 data URL 格式
                     image_url = f"data:{mime_type};base64,{image_base64}"
@@ -858,6 +937,84 @@ def run_test():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+def compress_base64_image(base64_data_url, max_base64_size=MAX_BASE64_SIZE):
+    """
+    压缩已经是 base64 格式的图片数据
+    
+    Args:
+        base64_data_url: data:image/xxx;base64,xxx 格式的图片数据
+        max_base64_size: base64 编码后的最大字节数
+    
+    Returns:
+        压缩后的 base64 data URL
+    """
+    # 解析 data URL
+    if not base64_data_url.startswith('data:'):
+        return base64_data_url
+    
+    # 提取 base64 数据
+    try:
+        header, base64_str = base64_data_url.split(',', 1)
+    except ValueError:
+        return base64_data_url
+    
+    # 检查大小是否在限制内
+    if len(base64_str) <= max_base64_size:
+        return base64_data_url
+    
+    # 需要压缩 - 解码后用 PIL 处理
+    try:
+        image_bytes = base64.b64decode(base64_str)
+        img = Image.open(BytesIO(image_bytes))
+        
+        # 如果是 RGBA 模式，转换为 RGB
+        if img.mode in ('RGBA', 'LA', 'P'):
+            background = Image.new('RGB', img.size, (255, 255, 255))
+            if img.mode == 'P':
+                img = img.convert('RGBA')
+            background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+            img = background
+        elif img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # 尝试不同的质量级别和尺寸
+        quality_levels = [85, 70, 55, 40, 30, 20]
+        scale_factors = [1.0, 0.8, 0.6, 0.5, 0.4, 0.3]
+        
+        for scale in scale_factors:
+            if scale < 1.0:
+                new_width = int(img.size[0] * scale)
+                new_height = int(img.size[1] * scale)
+                resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            else:
+                resized_img = img
+            
+            for quality in quality_levels:
+                buffer = BytesIO()
+                resized_img.save(buffer, format='JPEG', quality=quality, optimize=True)
+                compressed_data = buffer.getvalue()
+                compressed_base64 = base64.b64encode(compressed_data).decode('utf-8')
+                
+                if len(compressed_base64) <= max_base64_size:
+                    return f"data:image/jpeg;base64,{compressed_base64}"
+        
+        # 最后尝试极端压缩
+        final_scale = 0.2
+        new_width = int(img.size[0] * final_scale)
+        new_height = int(img.size[1] * final_scale)
+        resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        
+        buffer = BytesIO()
+        resized_img.save(buffer, format='JPEG', quality=15, optimize=True)
+        compressed_data = buffer.getvalue()
+        compressed_base64 = base64.b64encode(compressed_data).decode('utf-8')
+        
+        return f"data:image/jpeg;base64,{compressed_base64}"
+    except Exception:
+        # 如果压缩失败，返回原始数据
+        return base64_data_url
+
+
 @app.route('/api/classify-image', methods=['POST'])
 def classify_image():
     """图片分类"""
@@ -866,6 +1023,9 @@ def classify_image():
     base_url = data.get('base_url')
     api_key = data.get('api_key')
     image_data = data.get('image', '')
+    
+    # 压缩图片（如果需要）
+    image_data = compress_base64_image(image_data)
     
     custom_sys = data.get('sys_prompt', '')
     custom_user = data.get('user_prompt', '请识别并分类这张图片中的内容。')
